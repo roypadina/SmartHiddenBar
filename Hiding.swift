@@ -40,7 +40,7 @@ extension Lister {
     // ponytail: fixed 1 s settle; items still parked then are allowed (fail open) until the next 5 s poll re-denies them.
     @objc func reapply() {
         broken = false
-        guard hidden else { return }
+        guard hidden || !alwaysHidden.isEmpty else { return }
         log("hide: re-applying after screen change / wake")
         stopHiding()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.refreshHide() }
@@ -56,22 +56,46 @@ extension Lister {
 
     /// AX walk off the main thread (our own item's AX is answered by the main thread), then decide on main.
     /// Runs whether or not we hide: `last` is the inventory the menu and icon bar show.
+    /// "New menu bar apps: Always hide" (Settings): a bundle never seen before goes straight onto the always-hidden list.
+    /// The first run only records what's already there.
+    func noteNewApps(_ all: [Extra]) {
+        let d = UserDefaults.standard
+        let seen = Set(all.compactMap(\.app.bundleIdentifier).filter { !$0.hasPrefix("com.apple.") })
+        guard let known = d.stringArray(forKey: "knownApps").map(Set.init) else { return d.set(seen.sorted(), forKey: "knownApps") }
+        let fresh = seen.subtracting(known)
+        guard !fresh.isEmpty else { return }
+        d.set(known.union(fresh).sorted(), forKey: "knownApps")
+        guard d.string(forKey: "newApps") == "hide" else { return }
+        log("new menu bar apps, always hidden: \(fresh.sorted())")
+        d.set(alwaysHidden.union(fresh).sorted(), forKey: "alwaysHidden")
+    }
+
+    /// Apply at once from the last inventory (the 5 s poll keeps it fresh), then re-read to catch anything that moved.
+    func hideNow() {
+        if !last.isEmpty { applyHide(last, lastMe) }
+        refreshHide()
+    }
+
     @objc func refreshHide() {
         guard AXIsProcessTrusted() else { return }
         DispatchQueue.global(qos: .userInitiated).async {
             let all = extras(), me = ownFrame()
             DispatchQueue.main.async {
                 self.last = all
+                self.lastMe = me
+                self.noteNewApps(all)
                 self.applyHide(all, me)
             }
         }
     }
 
-    /// Allow = us + system owners + every bundle with an item right of our midX + parked bundles never seen left of us.
+    /// Hidden: allow = us + system owners + every bundle with an item right of our midX + parked bundles never seen left of us.
+    /// Shown: allow = every bundle on the bar. Either way minus the always-hidden list (shown + empty list = no restriction).
     /// ponytail: one AX coordinate space assumed (macOS 27 reports one bar here even with 3 displays); per-display
     /// projection like Hidden Bar PR #422 if the log shows items on other screens.
     func applyHide(_ all: [Extra], _ me: CGRect?) {
-        guard hidden, !broken else { return }
+        let always = alwaysHidden
+        guard hidden || !always.isEmpty, !broken, !ncOpen else { return }
         // Our own item parked (or gone) = the allow-list is hiding us too: release rather than leave nothing to click.
         guard let me, onBar(me.minY) else {
             stopHiding()
@@ -91,12 +115,13 @@ extension Lister {
         let own = Bundle.main.bundleIdentifier ?? "com.roypadina.SmartHiddenBar"
         // System owners too: phase 1 never hides macOS's own items (Now Playing may be bundle-owned, not a system id).
         let system = ["com.apple.MenuBarAgent", "com.apple.controlcenter", "com.apple.systemuiserver"]
-        let allow = Set([own] + system).union(right).union(parked.subtracting(denied)).sorted()
+        let visible = hidden ? right.union(parked.subtracting(denied)) : right.union(left).union(parked)
+        let allow = Set([own] + system).union(visible.subtracting(always)).sorted()
         guard allow != allowed || assertion == nil else { return }
         generation += 1
         let g = generation
         restrictMenuBar(to: allow) { [self] a in
-            guard g == generation, hidden else { a?.perform(invalidateSel); return }
+            guard g == generation, hidden || !alwaysHidden.isEmpty else { a?.perform(invalidateSel); return }
             guard let a else {  // fail open, and stop retrying every 5 s until the user clicks again
                 stopHiding()
                 broken = true

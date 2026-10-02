@@ -27,11 +27,15 @@ shows them again in a tidy icon bar on demand, and lets you use a hidden item's 
 ## Features
 
 - **One-click hiding.** Move the SmartHiddenBar icon (⌘-drag) and every item to its left hides. Click it (or press your own shortcut, set in Settings) to hide or show them.
-- **Icon bar.** Everything currently off the bar, as a row of icons under SmartHiddenBar's icon: ⌥-click, double-click, or a keyboard shortcut (⌃⌥B by default, recordable in Settings).
+- **Click mode per display.** Show → icon bar → hide (default on the built-in display), plain show / hide (default on external displays), or icon bar only.
+- **Always hidden.** Pick apps that stay off the bar even while items are shown; reach them from the icon bar. Optionally, new menu bar apps go straight onto the list.
+- **Icon bar.** Everything currently off the bar, as a row of icons under SmartHiddenBar's icon: ⌥-click, the click mode, or a keyboard shortcut (⌃⌥B by default, recordable in Settings).
+- **Hover or click empty menu bar space** to show / hide (both optional).
 - **Right-click menu.** Show/Hide items, an **Apps** submenu listing every third-party menu bar app (icon + name), Settings… and Quit. Each has its own recordable shortcut.
 - **Menu mirroring.** Pick a hidden item and use its menu from under SmartHiddenBar's icon, without unhiding it.
 - **Real menu bar icons (optional).** With Screen Recording, the icon bar shows each item's actual menu-bar icon instead of the app icon.
-- **Auto-rehide** after 5 / 10 / 30 / 60 s, and **launch at login**.
+- **Auto-rehide** after 5 / 10 / 30 / 60 s or as soon as the pointer leaves the menu bar, and **launch at login**.
+- **Notification Center keeps working:** clicking the clock lifts hiding until Notification Center closes.
 
 ## Install
 
@@ -65,12 +69,14 @@ On first run, ⌘-drag the SmartHiddenBar icon to the right of the items you wan
 
 | Action | Result |
 |---|---|
-| Click, or the show/hide shortcut (off by default) | Hide / show everything left of the icon |
-| ⌥-click, double-click, or the icon-bar shortcut (⌃⌥B default) | Icon bar with every item currently off the bar |
+| Click | The display's click mode (Settings → Click): show → icon bar → hide, show / hide, or icon bar only |
+| Show/hide shortcut (off by default) | Hide / show everything left of the icon |
+| ⌥-click, or the icon-bar shortcut (⌃⌥B default) | Icon bar with every item currently off the bar |
+| Hover / click empty menu bar space (off by default) | Show items (hover: until the pointer leaves the bar) / show or hide |
 | Click an icon in the icon bar | That item's menu, under SmartHiddenBar's icon |
 | Right-click (or ⌃-click) | Show/Hide items · Apps ▸ (every third-party menu bar app; pick one to use its menu) · Settings… · Quit |
 
-Settings: launch at login, auto-rehide, five recordable shortcuts (show/hide items, icon bar, list apps, settings, quit; all off by default except the icon bar: click the shortcut, press a combo with ⌃, ⌥ or ⌘; Esc cancels, Delete or Off clears), app icons vs. real menu bar icons, names in the icon bar, and permission status.
+Settings: launch at login, auto-rehide (after a delay or when the pointer leaves the bar), hover / empty-space click, click mode per display, always-hidden apps and what happens to new ones, five recordable shortcuts (show/hide items, icon bar, list apps, settings, quit; all off by default except the icon bar: click the shortcut, press a combo with ⌃, ⌥ or ⌘; Esc cancels, Delete or Off clears), app icons vs. real menu bar icons, names in the icon bar, and permission status.
 
 ## How it works
 
@@ -86,7 +92,8 @@ menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring
 - **macOS 27 only.** It relies on a **private API** that Apple can change or remove in any update; if it is missing, SmartHiddenBar tells you and leaves everything visible.
 - Hiding is **per app**: an app with several items hides or shows them together.
 - **Apple's own items** (Control Center, Wi-Fi, clock, ...) can't be hidden.
-- Only items **left of SmartHiddenBar's icon** are hidden.
+- Only items **left of SmartHiddenBar's icon** are hidden (plus your always-hidden apps).
+- macOS blocks Notification Center while hiding is active, so a click on the clock shows the hidden items until it closes.
 - Mirrored menus are a snapshot: titles that change while the menu is open may be stale.
 
 ## Privacy

@@ -30,17 +30,23 @@ struct Extra {
     }
 }
 
+func items(of app: NSRunningApplication) -> [Extra] {
+    guard let bar = ax(AXUIElementCreateApplication(app.processIdentifier), "AXExtrasMenuBar") else { return [] }
+    return kids(bar as! AXUIElement).enumerated().map { i, raw in
+        let item = actions(raw).isEmpty ? (kids(raw).first ?? raw) : raw  // MenuBarAgent wraps the real item in an action-less group
+        let r = rect(item)
+        return Extra(app: app, element: item, x: r.minX, y: r.minY, width: r.width, height: r.height, index: i)
+    }
+}
+
 func extras() -> [Extra] {
-    let all = NSWorkspace.shared.runningApplications.flatMap { app -> [Extra] in
-        guard app.processIdentifier != getpid(),
-              let bar = ax(AXUIElementCreateApplication(app.processIdentifier), "AXExtrasMenuBar")
-        else { return [] }
-        return kids(bar as! AXUIElement).enumerated().map { i, raw in
-            let item = actions(raw).isEmpty ? (kids(raw).first ?? raw) : raw  // MenuBarAgent wraps the real item in an action-less group
-            let r = rect(item)
-            return Extra(app: app, element: item, x: r.minX, y: r.minY, width: r.width, height: r.height, index: i)
-        }
-    }.sorted { $0.x > $1.x }
+    // Each query is a ~20 ms IPC round trip (300 ms on a timeout) for ~130 processes: ask them all in parallel.
+    let apps = NSWorkspace.shared.runningApplications.filter { $0.processIdentifier != getpid() }
+    var per = [[Extra]](repeating: [], count: apps.count)
+    per.withUnsafeMutableBufferPointer { buf in  // each slot written by exactly one iteration
+        DispatchQueue.concurrentPerform(iterations: apps.count) { buf[$0] = items(of: apps[$0]) }
+    }
+    let all = per.flatMap { $0 }.sorted { $0.x > $1.x }
     // Hidden = left of the notch, or overlapping its right-hand neighbour past its midpoint (macOS stacks overflow items there),
     // or parked off the bar (macOS 27 moves items it hides — e.g. via an allow-list — to ≈(0, screen bottom)).
     // ponytail: primary screen only; without a notch only x < 0 counts. Per-screen check if the notch screen isn't primary.

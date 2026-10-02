@@ -24,9 +24,12 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return p
     }()
     var barExtras: [Extra] = []
+    var lastMe: CGRect?  // our own item's frame from the same read
     var last: [Extra] = []  // latest background inventory (refreshHide); the menu and icon bar never walk AX on main
     var monitor: Any?
     var barNames: Bool { UserDefaults.standard.bool(forKey: "iconBarNames") }
+    /// Apps kept off the bar even while items are shown (Settings → Always hidden).
+    var alwaysHidden: Set<String> { Set(UserDefaults.standard.stringArray(forKey: "alwaysHidden") ?? []) }
     var hidden: Bool {
         get { UserDefaults.standard.bool(forKey: "hidden") }
         set { UserDefaults.standard.set(newValue, forKey: "hidden") }
@@ -68,6 +71,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(reapply), name: NSWorkspace.didWakeNotification, object: nil)
         // ponytail: 5 s poll also catches items an already-running app adds; push-based if MenuBarAgent ever offers it.
         Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(refreshHide), userInfo: nil, repeats: true)
+        installBarMonitors()
         captureIcons { self.applyHidden() }  // items are all on the bar until the first allow-list activation
     }
 
@@ -97,16 +101,122 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rehide?.invalidate()
         rehide = nil
         updateIcon()
-        guard !hidden else { return refreshHide() }
-        stopHiding()
+        guard !hidden else { hoverRevealed = false; return hideNow() }
+        if alwaysHidden.isEmpty { stopHiding() } else { hideNow() }
         let s = UserDefaults.standard.integer(forKey: "autoRehideSeconds")
         if s > 0 { rehide = Timer.scheduledTimer(timeInterval: TimeInterval(s), target: self, selector: #selector(rehideNow), userInfo: nil, repeats: false) }
+        if s < 0 || hoverRevealed {  // rehide once the pointer has been in the menu bar and left it; default-mode timer pauses while a menu is open
+            pointerEntered = false
+            rehide = Timer.scheduledTimer(timeInterval: 0.25, target: self, selector: #selector(watchPointer), userInfo: nil, repeats: true)
+        }
         // ponytail: fixed 300 ms for MenuBarAgent to put items back; retry/settle check if captures come out empty.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             guard !self.hidden else { return }
             self.refreshHide()  // refresh `last` with the items back on the bar
             captureIcons {}
         }
+    }
+
+    var pointerEntered = false
+    @objc func watchPointer() {
+        guard !bar.isVisible else { return }
+        if inMenuBar() { pointerEntered = true } else if pointerEntered { rehideNow() }
+    }
+
+    func inMenuBar() -> Bool {
+        guard let sc = mouseScreen() else { return false }
+        return NSEvent.mouseLocation.y >= min(sc.visibleFrame.maxY, sc.frame.maxY - NSStatusBar.system.thickness)
+    }
+
+    // MARK: Hover / click on the empty menu bar (Settings → General). Global mouse monitors need no permission.
+    var hoverRevealed = false  // shown by hovering: rehide when the pointer leaves, whatever the auto-rehide setting
+    var hoverWork: DispatchWorkItem?
+
+    func installBarMonitors() {
+        NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown]) { [weak self] e in
+            guard let self else { return }
+            let d = UserDefaults.standard
+            if e.type == .leftMouseDown {
+                guard inMenuBar() else { return }
+                if assertion != nil { clockClicked() }
+                guard d.bool(forKey: "clickEmptyBar") else { return }
+                whenOverEmptyBar { self.hideBar(); self.toggleHidden() }
+                return
+            }
+            guard d.bool(forKey: "hoverReveal"), hidden, inMenuBar() else { hoverWork?.cancel(); hoverWork = nil; return }
+            guard hoverWork == nil else { return }
+            // ponytail: fixed 0.3 s dwell so passing through the bar doesn't reveal; a Settings slider if it's wrong for someone.
+            let w = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                hoverWork = nil
+                guard hidden, inMenuBar() else { return }
+                whenOverEmptyBar { self.hoverRevealed = true; self.toggleHidden() }
+            }
+            hoverWork = w
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: w)
+        }
+    }
+
+    // MARK: Notification Center. Assessment mode blocks its panel even with notificationcenterui allowed (tested),
+    // so a click on the clock while restricted lifts the restriction until Notification Center closes.
+    var ncOpen = false  // restriction lifted for Notification Center; applyHide waits
+
+    func clockClicked() {
+        let p = NSEvent.mouseLocation, top = NSScreen.screens.first?.frame.maxY ?? 0
+        DispatchQueue.global(qos: .userInteractive).async {
+            var el: AXUIElement?
+            guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(p.x), Float(top - p.y), &el) == .success,
+                  let el, text(el, kAXIdentifierAttribute) == "com.apple.menuextra.clock" else { return }
+            DispatchQueue.main.async { [self] in
+                guard assertion != nil, !ncOpen else { return }
+                log("clock: lifting the restriction for Notification Center")
+                ncOpen = true
+                stopHiding()
+                // The real click went nowhere; if Notification Center isn't up shortly after the lift, press the clock for it.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [self] in
+                    if !ncVisible() { DispatchQueue.global().async { press(el) } }
+                    var seen = false, ticks = 0
+                    Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] t in
+                        MainActor.assumeIsolated {
+                            guard let self else { return t.invalidate() }
+                            ticks += 1
+                            if self.ncVisible() { seen = true; return }
+                            guard seen || ticks > 6 else { return }  // closed, or never opened within 3 s
+                            t.invalidate()
+                            self.ncOpen = false
+                            if self.hidden || !self.alwaysHidden.isEmpty { self.hideNow() }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Notification Center has no on-screen window while closed.
+    func ncVisible() -> Bool {
+        let pids = Set(NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == "com.apple.notificationcenterui" }.map(\.processIdentifier))
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        return windows.contains { pids.contains($0[kCGWindowOwnerPID as String] as? pid_t ?? 0) }
+    }
+
+    /// Runs `action` on main if the pointer is over bare menu bar (AX role AXMenuBar, not a menu title or an item)
+    /// and 20 pt either side is bare too: the gaps between icons (up to 16 pt measured) also report AXMenuBar.
+    /// The hit test runs off main: over our own icon it is answered by our main thread.
+    func whenOverEmptyBar(_ action: @escaping () -> Void) {
+        let p = NSEvent.mouseLocation, top = NSScreen.screens.first?.frame.maxY ?? 0  // AX: origin top-left of the primary screen
+        DispatchQueue.global(qos: .userInteractive).async {
+            let bare = [-20.0, 0, 20].allSatisfy { dx in
+                var el: AXUIElement?
+                return AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(p.x + dx), Float(top - p.y), &el) == .success
+                    && el.map { text($0, kAXRoleAttribute) } == kAXMenuBarRole
+            }
+            if bare { DispatchQueue.main.async(execute: action) }
+        }
+    }
+
+    /// Settings changed the always-hidden list: re-apply in whichever state we're in.
+    func alwaysHiddenChanged() {
+        if !hidden && alwaysHidden.isEmpty { stopHiding() } else { hideNow() }
     }
 
     @objc func rehideNow() {
@@ -156,23 +266,29 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         a.runModal()
     }
 
-    /// Left = toggle hiding; right / ⌃-left = menu; ⌥-left = icon bar.
+    /// Left = the display's click mode (Settings → Click); right / ⌃-left = menu; ⌥-left = icon bar.
     @objc func clicked() {
         guard let button = status.button else { return }
         let e = NSApp.currentEvent, flags = NSEvent.modifierFlags  // macOS 27 status clicks carry no modifiers/clickCount
-        if flags.contains(.option) { return bar.isVisible ? hideBar() : showBar() }
+        if flags.contains(.option) { return barUp ? hideBar() : showBar() }
         if e?.type == .rightMouseUp || flags.contains(.control) { return popUp(menu, below: button) }
-        // Double click = icon bar with every item; single click waits out the double-click interval, then toggles.
-        if let p = pendingToggle, !p.isCancelled {  // second click inside the interval = double click
-            p.cancel()
-            pendingToggle = nil
-            return bar.isVisible ? hideBar() : showBar()
+        switch clickMode(mouseScreen()) {
+        case "toggle": toggleHidden()
+        case "bar": barUp ? hideBar() : showBar()
+        default:  // cycle: expand → icon bar with what's still off the bar (always hidden, overflow) → collapse
+            if hidden { toggleHidden() }
+            else if !barUp, last.contains(where: offBar) { showBar() }
+            else { hideBar(); toggleHidden() }
         }
-        let w = DispatchWorkItem { [weak self] in self?.pendingToggle = nil; self?.toggleHidden() }
-        pendingToggle = w
-        DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: w)
     }
-    var pendingToggle: DispatchWorkItem?
+
+    func mouseScreen() -> NSScreen? { NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } }
+
+    /// "cycle" | "toggle" | "bar", per display name; default cycle on the built-in display, toggle elsewhere.
+    func clickMode(_ screen: NSScreen?) -> String {
+        guard let screen else { return "toggle" }
+        return (UserDefaults.standard.dictionary(forKey: "clickModes") as? [String: String])?[screen.localizedName] ?? defaultClickMode(screen)
+    }
 
     @objc func grantAccessibility() { openPane("Privacy_Accessibility") }
 
@@ -255,13 +371,16 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Ice-Bar-style row of app icons just below the menu bar, under our icon, clamped to the screen.
     // ponytail: hidden items only, one row, rebuilt on every show; add a "visible too" toggle if it's missed.
     /// Off the bar right now: parked by macOS, or ours while hidden (AX keeps reporting those at their on-bar frames).
-    func offBar(_ e: Extra) -> Bool { !e.isVisible || (hidden && denied.contains(e.app.bundleIdentifier ?? "")) }
+    func offBar(_ e: Extra) -> Bool {
+        let b = e.app.bundleIdentifier ?? ""
+        return !e.isVisible || (hidden && denied.contains(b)) || (assertion != nil && alwaysHidden.contains(b))
+    }
 
     func showBar() {
         unmonitor()
         let win = status.button?.window
-        guard let screen = win?.screen ?? NSScreen.main else { return }
-        let midX = win?.frame.midX ?? screen.frame.midX
+        guard let screen = mouseScreen() ?? win?.screen ?? NSScreen.main else { return }
+        let midX = win?.screen == screen ? win?.frame.midX ?? screen.frame.midX : NSEvent.mouseLocation.x
         barExtras = last.filter(offBar).sorted { $0.x < $1.x }  // menu bar order, left to right
         let cells: [NSView] = barExtras.enumerated().map { i, e in
             let b = NSButton(title: barNames ? e.app.localizedName ?? "?" : "", image: icon(e, height: 18) ?? NSImage(), target: self, action: #selector(cell(_:)))
@@ -293,9 +412,15 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Clicks inside the bar go to us, not to a global monitor, so any global mouse-down is "outside".
         // ponytail: Esc is observed, not consumed — the frontmost app also gets it.
         monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] e in
+            if e.type != .keyDown { self?.barClickedAway = Date() }
             if e.type != .keyDown || e.keyCode == 53 { self?.hideBar() }
         }
     }
+
+    /// Our status icon is drawn by MenuBarAgent, so clicking it while the bar is up first reaches the global
+    /// monitor (closing the bar), then `clicked`: treat a bar closed in the last 0.5 s as still open.
+    var barClickedAway = Date.distantPast
+    var barUp: Bool { bar.isVisible || Date().timeIntervalSince(barClickedAway) < 0.5 }
 
     func hideBar() {
         unmonitor()

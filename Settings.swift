@@ -7,14 +7,36 @@ func openPane(_ anchor: String) {
     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)")!)
 }
 
+/// Built-in display: cycle (its bar is short, the icon bar holds the overflow); external displays: plain toggle.
+func defaultClickMode(_ screen: NSScreen) -> String {
+    let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0
+    return CGDisplayIsBuiltin(id) != 0 ? "cycle" : "toggle"
+}
+
+/// Third-party menu bar apps seen this launch plus any already always-hidden: (bundle id, name), by name.
+func menuBarApps() -> [(id: String, name: String)] {
+    var names: [String: String] = [:]
+    for e in lister.last { if let b = e.app.bundleIdentifier, !b.hasPrefix("com.apple.") { names[b] = e.app.localizedName ?? b } }
+    for b in lister.alwaysHidden where names[b] == nil {
+        names[b] = NSWorkspace.shared.urlForApplication(withBundleIdentifier: b).map { FileManager.default.displayName(atPath: $0.path) } ?? b
+    }
+    return names.map { ($0.key, $0.value) }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+}
+
 struct SettingsView: View {
     @AppStorage("autoRehideSeconds") var rehide = 0
     @AppStorage("iconStyle") var iconStyle = "app"
     @AppStorage("iconBarNames") var names = false
+    @AppStorage("hoverReveal") var hoverReveal = false
+    @AppStorage("clickEmptyBar") var clickEmptyBar = false
+    @AppStorage("newApps") var newApps = "show"
     @State var login = SMAppService.mainApp.status == .enabled
     @State var loginStatus = SMAppService.mainApp.status
     @State var axOK = AXIsProcessTrusted()
     @State var screenOK = CGPreflightScreenCaptureAccess()
+    @State var clickModes = UserDefaults.standard.dictionary(forKey: "clickModes") as? [String: String] ?? [:]
+    @State var always = lister.alwaysHidden
+    @State var apps = menuBarApps()
     @State var asked = false  // Screen Recording already requested once from here: the button opens Settings instead
 
     var body: some View {
@@ -30,7 +52,10 @@ struct SettingsView: View {
                 Picker("Auto-rehide after", selection: $rehide) {
                     Text("Never").tag(0)
                     ForEach([5, 10, 30, 60], id: \.self) { Text("\($0) s").tag($0) }
+                    Text("When the pointer leaves the menu bar").tag(-1)
                 }
+                Toggle("Show items when hovering empty menu bar space", isOn: $hoverReveal)
+                Toggle("Click empty menu bar space to show / hide", isOn: $clickEmptyBar)
                 ForEach(shortcutActions, id: \.key) { ShortcutRow(key: $0.key, label: "\($0.label) shortcut") }
             } header: { Text("General") } footer: {
                 if loginStatus == .requiresApproval {
@@ -39,6 +64,45 @@ struct SettingsView: View {
                         Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }
                     }
                 }
+            }
+            Section {
+                ForEach(NSScreen.screens, id: \.localizedName) { screen in
+                    Picker(screen.localizedName, selection: Binding(
+                        get: { clickModes[screen.localizedName] ?? defaultClickMode(screen) },
+                        set: { clickModes[screen.localizedName] = $0; UserDefaults.standard.set(clickModes, forKey: "clickModes") })) {
+                        Text("Show → icon bar → hide").tag("cycle")
+                        Text("Show / hide").tag("toggle")
+                        Text("Icon bar only").tag("bar")
+                    }
+                }
+            } header: { Text("Click") } footer: {
+                Text("What a left click on the SmartHiddenBar icon does on each display. ⌥-click always opens the icon bar.").foregroundStyle(.secondary)
+            }
+            Section {
+                Picker("New menu bar apps", selection: $newApps) {
+                    Text("Show normally").tag("show")
+                    Text("Always hide").tag("hide")
+                }
+                ForEach(apps, id: \.id) { app in
+                    Toggle(isOn: Binding(
+                        get: { always.contains(app.id) },
+                        set: { on in
+                            if on { always.insert(app.id) } else { always.remove(app.id) }
+                            UserDefaults.standard.set(always.sorted(), forKey: "alwaysHidden")
+                            lister.alwaysHiddenChanged()
+                        })) {
+                        Label {
+                            Text(app.name)
+                        } icon: {
+                            Image(nsImage: NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.id)
+                                .map { NSWorkspace.shared.icon(forFile: $0.path) } ?? NSImage())
+                                .resizable().frame(width: 16, height: 16)
+                        }
+                    }
+                }
+                if apps.isEmpty { Text("No menu bar apps found yet").foregroundStyle(.secondary) }
+            } header: { Text("Always hidden") } footer: {
+                Text("Stay hidden even when items are shown; reach them from the icon bar.").foregroundStyle(.secondary)
             }
             Section {
                 Picker("Icons", selection: $iconStyle) {
@@ -76,6 +140,8 @@ struct SettingsView: View {
         // ponytail: permission state refreshes when the app reactivates (e.g. back from System Settings), not live.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             axOK = AXIsProcessTrusted()
+            apps = menuBarApps()
+            always = lister.alwaysHidden
             screenOK = CGPreflightScreenCaptureAccess()
             loginStatus = SMAppService.mainApp.status
             login = loginStatus == .enabled
