@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Compile check
+    # No macOS 27 runner yet; the xcode-27 image (public preview) has the macOS 27 SDK, enough for a compile check.
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      # CI=1: ad-hoc signing, no /Applications install, no run (needs macOS 27 + Accessibility).
+      - name: Build
+        run: CI=1 ./build.sh

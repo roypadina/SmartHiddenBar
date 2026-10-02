@@ -1,0 +1,40 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Drag the SmartHiddenBar icon to the right of ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and build
+      placeholder: "27.0.1 (26A...)"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: SmartHiddenBar version and install method
+      placeholder: "1.0.0, Homebrew, running from /Applications"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log (optional)
+      description: Contents of `~/Library/Logs/SmartHiddenBar.log` (redact anything sensitive).
+      render: shell
