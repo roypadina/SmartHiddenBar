@@ -202,7 +202,9 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(row("Settings…", #selector(openSettings), "settingsShortcut", fallback: ","))
         menu.addItem(.separator())
-        menu.addItem(row("Quit", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q"))
+        let quit = row("Quit", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q")
+        quit.target = NSApp  // `self` doesn't implement terminate:, so with target = self the item auto-disables
+        menu.addItem(quit)
     }
 
     @objc func noop() {}
