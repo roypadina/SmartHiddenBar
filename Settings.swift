@@ -136,13 +136,11 @@ struct SettingsView: View {
                         Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")").foregroundStyle(.secondary)
                     }
                 }
-                Text(aboutText).fixedSize(horizontal: false, vertical: true)
                 HStack {
+                    Button("About SmartHiddenBar…") { AboutWindow.show() }
                     Button("Support on Ko-fi ☕") { NSWorkspace.shared.open(kofiURL) }.buttonStyle(.borderedProminent)
-                    Button("GitHub") { NSWorkspace.shared.open(URL(string: "https://github.com/roypadina/SmartHiddenBar")!) }
                     Button("Reveal log") { NSWorkspace.shared.activateFileViewerSelecting([logURL]) }
                 }
-                Text("MIT · hiding approach from Hidden Bar (MIT)").foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -163,10 +161,59 @@ struct SettingsView: View {
 }
 
 let kofiURL = URL(string: "https://ko-fi.com/roypadina")!
-let aboutText = """
-Made by Roy Padina
 
-I'm a software engineer from Israel who builds small, focused Mac tools to fix the little annoyances in my own day — then shares them free and open source.
+/// Custom About window: the standard panel's fixed-height credits box clipped the text.
+enum AboutWindow {
+    static var window: NSWindow?
+    static func show() {
+        if window == nil {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: AboutView()))
+            w.title = "About SmartHiddenBar"
+            w.styleMask = [.titled, .closable]
+            w.isReleasedWhenClosed = false
+            w.center()
+            window = w
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+    }
+}
 
-If this app saves you time, a coffee on Ko-fi keeps the next one coming. ☕
-"""
+struct AboutView: View {
+    private let info = Bundle.main.infoDictionary ?? [:]
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
+            VStack(spacing: 2) {
+                Text("SmartHiddenBar").font(.title.bold())
+                Text("Version \(info["CFBundleShortVersionString"] as? String ?? "") (\(info["CFBundleVersion"] as? String ?? ""))")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+            VStack(spacing: 8) {
+                Text("Made by Roy Padina").font(.headline)
+                Text("I'm a software engineer from Israel who builds small, focused Mac tools to fix the little annoyances in my own day — then shares them free and open source.")
+                Text("If this app saves you time, a coffee on Ko-fi keeps the next one coming. ☕")
+            }
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Link(destination: kofiURL) { Text("Support on Ko-fi ☕").frame(minWidth: 140) }
+                    .buttonStyle(.borderedProminent).controlSize(.large)
+                Link(destination: URL(string: "https://github.com/roypadina/SmartHiddenBar")!) { Text("GitHub").frame(minWidth: 70) }
+                    .buttonStyle(.bordered).controlSize(.large)
+            }
+            Link("Report an issue", destination: URL(string: "https://github.com/roypadina/SmartHiddenBar/issues")!).font(.callout)
+            Divider().padding(.vertical, 4)
+            VStack(spacing: 3) {
+                Text("Hiding approach from [Hidden Bar](https://github.com/dwarvesf/hidden) by Dwarves Foundation · MIT")
+                Text("© Roy Padina · MIT")
+            }
+            .font(.caption).foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(24)
+        .frame(width: 380)
+    }
+}

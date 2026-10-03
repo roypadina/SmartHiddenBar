@@ -328,12 +328,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func noop() {}
 
-    @objc func showAbout() {
-        NSApp.activate(ignoringOtherApps: true)
-        let credits = NSMutableAttributedString(string: aboutText + "\n\n", attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.labelColor])
-        credits.append(NSAttributedString(string: "Support on Ko-fi", attributes: [.link: kofiURL, .font: NSFont.systemFont(ofSize: 11)]))
-        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
-    }
+    @objc func showAbout() { AboutWindow.show() }
 
     @objc func openKofi() { NSWorkspace.shared.open(kofiURL) }
 

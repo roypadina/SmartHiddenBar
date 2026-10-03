@@ -19,5 +19,5 @@ codesign -f -s "$ID" "$APP"
 if [ -n "$RELEASE" ]; then rm -f build/SmartHiddenBar.zip && ditto -c -k --keepParent "$APP" build/SmartHiddenBar.zip && echo "built build/SmartHiddenBar.zip" && shasum -a 256 build/SmartHiddenBar.zip; exit 0; fi
 [ -n "$CI" ] && exit 0
 # MenuBarAgent's allow-list resolves bundle ids via LaunchServices, which prefers the /Applications copy: run that one.
-if pgrep -qf /Applications/SmartHiddenBar.app/; then echo "/Applications copy running, not replaced: quit it and rerun"
+if pgrep -qx SmartHiddenBar; then echo "/Applications copy running, not replaced: quit it and rerun"
 else rm -rf /Applications/SmartHiddenBar.app && ditto "$APP" /Applications/SmartHiddenBar.app && echo "installed /Applications/SmartHiddenBar.app"; fi
