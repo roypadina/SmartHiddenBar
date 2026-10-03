@@ -129,9 +129,19 @@ struct SettingsView: View {
                 }
             }
             Section("About") {
-                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")
-                Link("github.com/roypadina/SmartHiddenBar", destination: URL(string: "https://github.com/roypadina/SmartHiddenBar")!)
-                Button("Reveal log") { NSWorkspace.shared.activateFileViewerSelecting([logURL]) }
+                HStack(spacing: 12) {
+                    Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48)
+                    VStack(alignment: .leading) {
+                        Text("SmartHiddenBar").font(.headline)
+                        Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")").foregroundStyle(.secondary)
+                    }
+                }
+                Text(aboutText).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Button("Support on Ko-fi ☕") { NSWorkspace.shared.open(kofiURL) }.buttonStyle(.borderedProminent)
+                    Button("GitHub") { NSWorkspace.shared.open(URL(string: "https://github.com/roypadina/SmartHiddenBar")!) }
+                    Button("Reveal log") { NSWorkspace.shared.activateFileViewerSelecting([logURL]) }
+                }
                 Text("MIT · hiding approach from Hidden Bar (MIT)").foregroundStyle(.secondary)
             }
         }
@@ -151,3 +161,12 @@ struct SettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { _ in HotKeys.shared.stopRecording() }
     }
 }
+
+let kofiURL = URL(string: "https://ko-fi.com/roypadina")!
+let aboutText = """
+Made by Roy Padina
+
+I'm a software engineer from Israel who builds small, focused Mac tools to fix the little annoyances in my own day — then shares them free and open source.
+
+If this app saves you time, a coffee on Ko-fi keeps the next one coming. ☕
+"""

@@ -318,12 +318,24 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(row("Settings…", #selector(openSettings), "settingsShortcut", fallback: ","))
         menu.addItem(.separator())
+        menu.addItem(row("About SmartHiddenBar", #selector(showAbout), ""))
+        menu.addItem(row("Support on Ko-fi ☕", #selector(openKofi), ""))
+        menu.addItem(.separator())
         let quit = row("Quit", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q")
         quit.target = NSApp  // `self` doesn't implement terminate:, so with target = self the item auto-disables
         menu.addItem(quit)
     }
 
     @objc func noop() {}
+
+    @objc func showAbout() {
+        NSApp.activate(ignoringOtherApps: true)
+        let credits = NSMutableAttributedString(string: aboutText + "\n\n", attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.labelColor])
+        credits.append(NSAttributedString(string: "Support on Ko-fi", attributes: [.link: kofiURL, .font: NSFont.systemFont(ofSize: 11)]))
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
+    }
+
+    @objc func openKofi() { NSWorkspace.shared.open(kofiURL) }
 
     /// Every third-party menu bar item (Apple's own skipped), by app name; a pick opens its mirrored menu.
     func appsMenu() -> NSMenu {

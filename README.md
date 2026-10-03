@@ -12,6 +12,7 @@ shows them again in a tidy icon bar on demand, and lets you use a hidden item's 
 [![macOS](https://img.shields.io/badge/macOS-27-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white)](https://swift.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/roypadina)
 [![Stars](https://img.shields.io/github/stars/roypadina/SmartHiddenBar?style=social)](https://github.com/roypadina/SmartHiddenBar/stargazers)
 
 <br>
@@ -126,7 +127,11 @@ by Dwarves Foundation (MIT); see [LICENSE](LICENSE) for its notice.
 
 ## Support
 
-If SmartHiddenBar tidies your menu bar, you can [**buy me a coffee on Ko-fi ☕**](https://ko-fi.com/roypadina) — optional, always appreciated. A **⭐ star** helps just as much.
+If SmartHiddenBar tidies your menu bar, you can support its development — it's optional and always appreciated.
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/roypadina)
+
+A ⭐ on the repo helps just as much.
 
 ## License
 
