@@ -15,6 +15,8 @@ ID="KeyLayoutSwitcher Dev"
 security find-identity -v -p codesigning | grep -q "\"$ID\"" || ID=-
 [ -n "$RELEASE$CI" ] && ID=-  # release / CI builds: ad-hoc, no local identity
 codesign -f -s "$ID" "$APP"
+# A build/ copy LaunchServices knows about can win the bundle-id lookup over /Applications: keep it unregistered.
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$APP" 2>/dev/null || true
 # RELEASE=1: zip for GitHub Releases / the cask. CI: compile check only. Neither installs.
 if [ -n "$RELEASE" ]; then rm -f build/SmartHiddenBar.zip && ditto -c -k --keepParent "$APP" build/SmartHiddenBar.zip && echo "built build/SmartHiddenBar.zip" && shasum -a 256 build/SmartHiddenBar.zip; exit 0; fi
 [ -n "$CI" ] && exit 0

@@ -7,6 +7,7 @@ import AppKit
 // ponytail: Swift can't catch an NSException from a changed private API; we only check classes/selectors up front.
 
 let invalidateSel = NSSelectorFromString("invalidate")
+let inventoryChanged = Notification.Name("SmartHiddenBarInventoryChanged")  // the set of apps with a menu bar item changed
 var hideAPIMissing = false
 
 /// Activates an allow-list; `done` runs on main with the assertion to hold, or nil (logged).
@@ -81,10 +82,12 @@ extension Lister {
         DispatchQueue.global(qos: .userInitiated).async {
             let all = extras(), me = ownFrame()
             DispatchQueue.main.async {
+                let changed = Set(all.compactMap(\.app.bundleIdentifier)) != Set(self.last.compactMap(\.app.bundleIdentifier))
                 self.last = all
                 self.lastMe = me
                 self.noteNewApps(all)
                 self.applyHide(all, me)
+                if changed { NotificationCenter.default.post(name: inventoryChanged, object: nil) }  // Settings' app list
             }
         }
     }
@@ -109,6 +112,18 @@ extension Lister {
             if !onBar(e.y) { parked.insert(b) }
             else if e.x + e.width / 2 > me.midX { right.insert(b) }
             else { left.insert(b) }
+        }
+        // An item that first appears under a running allow-list stays parked even after a newer list allows it (tested
+        // with a fresh app): only a full release places it. Once per process — parked with nothing of ours active
+        // means macOS itself keeps it off the bar, and a release wouldn't help.
+        let parkedPids = Set(all.filter { !onBar($0.y) }.map(\.app.processIdentifier))
+        if assertion == nil { released.formUnion(parkedPids) }
+        let stuck = all.filter { parkedPids.contains($0.app.processIdentifier) && !released.contains($0.app.processIdentifier)
+            && allowed.contains($0.app.bundleIdentifier ?? "") }
+        if !stuck.isEmpty {
+            released.formUnion(stuck.map(\.app.processIdentifier))
+            log("hide: \(stuck.map(\.name)) allowed but parked, releasing once to place it")
+            stopHiding()
         }
         if left.isEmpty, denied.isEmpty, !UserDefaults.standard.bool(forKey: "firstRunHintShown") { firstRunHint() }
         denied = denied.union(left).subtracting(right)

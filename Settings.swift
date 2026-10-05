@@ -18,7 +18,8 @@ func menuBarApps() -> [(id: String, name: String)] {
     var names: [String: String] = [:]
     for e in lister.last { if let b = e.app.bundleIdentifier, !b.hasPrefix("com.apple.") { names[b] = e.app.localizedName ?? b } }
     for b in lister.alwaysHidden where names[b] == nil {
-        names[b] = NSWorkspace.shared.urlForApplication(withBundleIdentifier: b).map { FileManager.default.displayName(atPath: $0.path) } ?? b
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: b) else { continue }  // uninstalled: off the list
+        names[b] = FileManager.default.displayName(atPath: url.path)
     }
     return names.map { ($0.key, $0.value) }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 }
@@ -154,6 +155,7 @@ struct SettingsView: View {
             loginStatus = SMAppService.mainApp.status
             login = loginStatus == .enabled
         }
+        .onReceive(NotificationCenter.default.publisher(for: inventoryChanged)) { _ in apps = menuBarApps() }
         // A recording left open must not keep our shortcuts unregistered.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in HotKeys.shared.stopRecording() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { _ in HotKeys.shared.stopRecording() }

@@ -48,6 +48,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var assertion: NSObject?  // held = restriction active; released = full bar back
     var allowed: [String] = []  // allow-list behind `assertion`
     var denied = Set<String>()  // bundles seen on the bar left of us; parked bundles NOT in here are allowed (fail open)
+    var released = Set<pid_t>()  // processes whose parked item already got its one full release (applyHide)
     var generation = 0  // bumped to make an in-flight activation lose
 
     func applicationDidFinishLaunching(_ n: Notification) {
@@ -80,7 +81,22 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// The allow-list matches bundle ids through LaunchServices, so a copy LS doesn't resolve to hides its own icon.
     func checkLocation() {
         let me = URL(fileURLWithPath: Bundle.main.bundlePath).resolvingSymlinksInPath().path
-        let ls = Bundle.main.bundleIdentifier.flatMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }?.resolvingSymlinksInPath().path
+        let id = Bundle.main.bundleIdentifier ?? ""
+        func resolved() -> String? { NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)?.resolvingSymlinksInPath().path }
+        var ls = resolved()
+        // Another registered copy (a build folder, Downloads) can win the lookup over /Applications, e.g. after an
+        // install re-registers ours: drop the other copies' LaunchServices records (the files stay) and look again.
+        if ls != me, me.hasPrefix("/Applications/") {
+            for url in NSWorkspace.shared.urlsForApplications(withBundleIdentifier: id) where url.resolvingSymlinksInPath().path != me {
+                log("launch: unregistering duplicate \(url.path) from LaunchServices")
+                let p = Process()
+                p.executableURL = URL(fileURLWithPath: "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
+                p.arguments = ["-u", url.path]
+                try? p.run()
+                p.waitUntilExit()
+            }
+            ls = resolved()
+        }
         guard ls != me else { return }
         log("launch: running \(me), LaunchServices resolves \(ls ?? "nothing")")
         let a = NSAlert()
