@@ -28,6 +28,7 @@ struct SettingsView: View {
     @AppStorage("autoRehideSeconds") var rehide = 0
     @AppStorage("iconStyle") var iconStyle = "app"
     @AppStorage("iconBarNames") var names = false
+    @AppStorage("iconBarSize") var iconSize = 24.0
     @AppStorage("hoverReveal") var hoverReveal = false
     @AppStorage("clickEmptyBar") var clickEmptyBar = false
     @AppStorage("newApps") var newApps = "show"
@@ -112,6 +113,7 @@ struct SettingsView: View {
                 }.onChange(of: iconStyle) { _, style in
                     if style == "real", !CGPreflightScreenCaptureAccess() { asked = true; _ = CGRequestScreenCaptureAccess() }
                 }
+                Slider(value: $iconSize, in: 16...48, step: 2) { Text("Icon size in icon bar: \(Int(iconSize)) pt") }
                 Toggle("Show names in icon bar", isOn: $names)
             } header: { Text("Hidden items") } footer: {
                 Text(iconStyle == "real" && !screenOK

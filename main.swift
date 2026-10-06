@@ -21,6 +21,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         p.backgroundColor = .clear
         p.hasShadow = true
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        p.allowsToolTipsWhenApplicationIsInactive = true  // we're never active, so no hover names without this
         return p
     }()
     var barExtras: [Extra] = []
@@ -52,7 +53,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var generation = 0  // bumped to make an in-flight activation lose
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        UserDefaults.standard.register(defaults: ["hidden": true])
+        UserDefaults.standard.register(defaults: ["hidden": true, "iconBarSize": 24.0, "NSInitialToolTipDelay": 200])  // ms
         checkLocation()
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
         status.autosaveName = "SmartHiddenBar"
@@ -406,7 +407,8 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let midX = win?.screen == screen ? win?.frame.midX ?? screen.frame.midX : NSEvent.mouseLocation.x
         barExtras = last.filter(offBar).sorted { $0.x < $1.x }  // menu bar order, left to right
         let cells: [NSView] = barExtras.enumerated().map { i, e in
-            let b = NSButton(title: barNames ? e.app.localizedName ?? "?" : "", image: icon(e, height: 18) ?? NSImage(), target: self, action: #selector(cell(_:)))
+            let size = CGFloat(UserDefaults.standard.double(forKey: "iconBarSize"))
+            let b = Cell(title: barNames ? e.app.localizedName ?? "?" : "", image: icon(e, height: size) ?? NSImage(), target: self, action: #selector(cell(_:)))
             b.isBordered = false
             b.imagePosition = barNames ? .imageAbove : .imageOnly
             b.font = .systemFont(ofSize: 10)
@@ -493,6 +495,11 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if !closed(root) { close(root, of: p.item) }
         }
     }
+}
+
+/// Icon-bar cell: right-click acts like left click (third-party items expose only AXPress, no AXShowMenu).
+final class Cell: NSButton {
+    override func rightMouseDown(with e: NSEvent) { performClick(nil) }
 }
 
 AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.3)  // a menu press blocks until the menu closes
