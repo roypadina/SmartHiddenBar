@@ -113,17 +113,20 @@ extension Lister {
             else if e.x + e.width / 2 > me.midX { right.insert(b) }
             else { left.insert(b) }
         }
-        // An item that first appears under a running allow-list stays parked even after a newer list allows it (tested
-        // with a fresh app): only a full release places it. Once per process — parked with nothing of ours active
-        // means macOS itself keeps it off the bar, and a release wouldn't help.
-        let parkedPids = Set(all.filter { !onBar($0.y) }.map(\.app.processIdentifier))
-        if assertion == nil { released.formUnion(parkedPids) }
-        let stuck = all.filter { parkedPids.contains($0.app.processIdentifier) && !released.contains($0.app.processIdentifier)
-            && allowed.contains($0.app.bundleIdentifier ?? "") }
-        if !stuck.isEmpty {
-            released.formUnion(stuck.map(\.app.processIdentifier))
-            log("hide: \(stuck.map(\.name)) allowed but parked, releasing once to place it")
-            stopHiding()
+        // Parked for more than a poll although our list allows it = macOS itself keeps it off the bar: System Settings ›
+        // Menu Bar › "Allow in the Menu Bar" is off for that app (MenuBarAgent persists it per app and parks the item at
+        // creation, whatever any allow-list says). Nothing we activate or release places it — a release only flashes the
+        // whole bar — so say so once; the item stays reachable from the icon bar and the Apps menu.
+        // ponytail: 3 s grace — a newly allowed item takes up to ~1 s to be placed, so the 0.5 s re-read still sees it parked.
+        let now = Date()
+        for e in all {
+            let pid = e.app.processIdentifier
+            guard !onBar(e.y), allowed.contains(e.app.bundleIdentifier ?? "") else { osParked[pid] = nil; continue }
+            let since = osParked[pid] ?? now
+            osParked[pid] = since
+            guard since != .distantPast, now.timeIntervalSince(since) > 3 else { continue }
+            osParked[pid] = .distantPast
+            log("hide: \(e.name) kept off the bar by macOS (System Settings › Menu Bar › Allow in the Menu Bar), not by us")
         }
         if left.isEmpty, denied.isEmpty, !UserDefaults.standard.bool(forKey: "firstRunHintShown") { firstRunHint() }
         denied = denied.union(left).subtracting(right)
