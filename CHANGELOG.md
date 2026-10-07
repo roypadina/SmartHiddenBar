@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-07
+
+### Fixed
+- A menu bar app launched while SmartHiddenBar runs shows up without the whole bar flashing (the 1.1.3 "release once" step is gone; the next allow-list places the new item within about a second).
+
+### Changed
+- An app that stays off the bar although SmartHiddenBar allows it is logged once as "kept off the bar by macOS": System Settings → Menu Bar → "Allow in the Menu Bar" is off for it.
+
 ## [1.2.0] - 2026-10-06
 
 ### Added

@@ -96,6 +96,7 @@ menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring
 - **Apple's own items** (Control Center, Wi-Fi, clock, ...) can't be hidden.
 - Only items **left of SmartHiddenBar's icon** are hidden (plus your always-hidden apps).
 - macOS blocks Notification Center while hiding is active, so a click on the clock shows the hidden items until it closes.
+- An app switched off in System Settings → Menu Bar → **Allow in the Menu Bar** never shows on the bar, with or without SmartHiddenBar; turn it on there.
 - Mirrored menus are a snapshot: titles that change while the menu is open may be stale.
 
 ## Privacy
