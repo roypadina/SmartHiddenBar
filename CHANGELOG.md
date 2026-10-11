@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Disable SmartHiddenBar** in the right-click menu: nothing is hidden at all (always-hidden apps included), as if the app had quit, until you pick **Enable SmartHiddenBar**. While disabled the icon is dimmed, any click opens the menu, and the state survives a relaunch.
+
 ## [1.2.1] - 2026-10-07
 
 ### Fixed

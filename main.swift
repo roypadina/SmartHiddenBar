@@ -35,6 +35,11 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         get { UserDefaults.standard.bool(forKey: "hidden") }
         set { UserDefaults.standard.set(newValue, forKey: "hidden") }
     }
+    /// Disabled (menu → Disable SmartHiddenBar): no restriction at all, always-hidden included, as if quit; survives relaunch.
+    var disabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "disabled") }
+        set { UserDefaults.standard.set(newValue, forKey: "disabled") }
+    }
     var broken = false  // hiding failed this launch: stay shown, don't retry until the user clicks
     var alerted = false  // missing-API alert shown this launch
     var rehide: Timer?
@@ -109,6 +114,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func toggleHidden() {
+        guard !disabled else { return }
         if broken { broken = false } else { hidden.toggle() }  // after a failure the click retries instead of flipping
         applyHidden()
     }
@@ -118,6 +124,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rehide?.invalidate()
         rehide = nil
         updateIcon()
+        guard !disabled else { return stopHiding() }
         guard !hidden else { hoverRevealed = false; return hideNow() }
         if alwaysHidden.isEmpty { stopHiding() } else { hideNow() }
         let s = UserDefaults.standard.integer(forKey: "autoRehideSeconds")
@@ -236,6 +243,13 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !hidden && alwaysHidden.isEmpty { stopHiding() } else { hideNow() }
     }
 
+    @objc func toggleDisabled() {
+        disabled.toggle()
+        broken = false
+        log(disabled ? "disabled" : "enabled")
+        applyHidden()
+    }
+
     @objc func rehideNow() {
         guard !hidden else { return }
         hidden = true
@@ -243,7 +257,8 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func updateIcon() {
-        let h = hidden && !broken
+        let h = hidden && !broken && !disabled
+        status.button?.appearsDisabled = disabled
         let img = NSImage(named: h ? "menubar-hidden" : "menubar-shown")
             ?? NSImage(systemSymbolName: h ? "chevron.right" : "chevron.left", accessibilityDescription: nil)
         img?.isTemplate = true
@@ -288,7 +303,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let button = status.button else { return }
         let e = NSApp.currentEvent, flags = NSEvent.modifierFlags  // macOS 27 status clicks carry no modifiers/clickCount
         if flags.contains(.option) { return barUp ? hideBar() : showBar() }
-        if e?.type == .rightMouseUp || flags.contains(.control) { return popUp(menu, below: button) }
+        if e?.type == .rightMouseUp || flags.contains(.control) || disabled { return popUp(menu, below: button) }
         switch clickMode(mouseScreen()) {
         case "toggle": toggleHidden()
         case "bar": barUp ? hideBar() : showBar()
@@ -328,7 +343,8 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return item
         }
         if !AXIsProcessTrusted() { menu.addItem(row("Grant Accessibility…", #selector(grantAccessibility), "")) }
-        menu.addItem(row(hidden ? "Show items" : "Hide items", #selector(toggleHidden), "toggleShortcut"))
+        if !disabled { menu.addItem(row(hidden ? "Show items" : "Hide items", #selector(toggleHidden), "toggleShortcut")) }
+        menu.addItem(row(disabled ? "Enable SmartHiddenBar" : "Disable SmartHiddenBar", #selector(toggleDisabled), ""))
         let apps = row("Apps", #selector(noop), "appsShortcut")
         apps.submenu = appsMenu()
         menu.addItem(apps)
@@ -397,7 +413,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Off the bar right now: parked by macOS, or ours while hidden (AX keeps reporting those at their on-bar frames).
     func offBar(_ e: Extra) -> Bool {
         let b = e.app.bundleIdentifier ?? ""
-        return !e.isVisible || (hidden && denied.contains(b)) || (assertion != nil && alwaysHidden.contains(b))
+        return !e.isVisible || (hidden && !disabled && denied.contains(b)) || (assertion != nil && alwaysHidden.contains(b))
     }
 
     func showBar() {

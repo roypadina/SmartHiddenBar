@@ -32,7 +32,7 @@ shows them again in a tidy icon bar on demand, and lets you use a hidden item's 
 - **Always hidden.** Pick apps that stay off the bar even while items are shown; reach them from the icon bar. Optionally, new menu bar apps go straight onto the list.
 - **Icon bar.** Everything currently off the bar, as a row of icons under SmartHiddenBar's icon: ⌥-click, the click mode, or a keyboard shortcut (⌃⌥B by default, recordable in Settings). Hover an icon for its name; adjustable icon size.
 - **Hover or click empty menu bar space** to show / hide (both optional).
-- **Right-click menu.** Show/Hide items, an **Apps** submenu listing every third-party menu bar app (icon + name), Settings… and Quit. Each has its own recordable shortcut.
+- **Right-click menu.** Show/Hide items, Disable/Enable SmartHiddenBar (disabled = nothing hidden, always-hidden included, as if quit), an **Apps** submenu listing every third-party menu bar app (icon + name), Settings… and Quit. Each has its own recordable shortcut.
 - **Menu mirroring.** Pick a hidden item and use its menu from under SmartHiddenBar's icon, without unhiding it.
 - **Real menu bar icons (optional).** With Screen Recording, the icon bar shows each item's actual menu-bar icon instead of the app icon.
 - **Auto-rehide** after 5 / 10 / 30 / 60 s or as soon as the pointer leaves the menu bar, and **launch at login**.
@@ -76,7 +76,7 @@ On first run, ⌘-drag the SmartHiddenBar icon to the right of the items you wan
 | Hover / click empty menu bar space (off by default) | Show items (hover: until the pointer leaves the bar) / show or hide |
 | Click (or right-click) an icon in the icon bar | That item's menu, under SmartHiddenBar's icon |
 | Hover an icon in the icon bar | Its app name |
-| Right-click (or ⌃-click) | Show/Hide items · Apps ▸ (every third-party menu bar app; pick one to use its menu) · Settings… · Quit |
+| Right-click (or ⌃-click) | Show/Hide items · Disable/Enable SmartHiddenBar · Apps ▸ (every third-party menu bar app; pick one to use its menu) · Settings… · Quit |
 
 Settings: launch at login, auto-rehide (after a delay or when the pointer leaves the bar), hover / empty-space click, click mode per display, always-hidden apps and what happens to new ones, five recordable shortcuts (show/hide items, icon bar, list apps, settings, quit; all off by default except the icon bar: click the shortcut, press a combo with ⌃, ⌥ or ⌘; Esc cancels, Delete or Off clears), app icons vs. real menu bar icons, icon size and names in the icon bar, and permission status.
 

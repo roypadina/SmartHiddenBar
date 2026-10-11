@@ -98,7 +98,7 @@ extension Lister {
     /// projection like Hidden Bar PR #422 if the log shows items on other screens.
     func applyHide(_ all: [Extra], _ me: CGRect?) {
         let always = alwaysHidden
-        guard hidden || !always.isEmpty, !broken, !ncOpen else { return }
+        guard !disabled, hidden || !always.isEmpty, !broken, !ncOpen else { return }
         // Our own item parked (or gone) = the allow-list is hiding us too: release rather than leave nothing to click.
         guard let me, onBar(me.minY) else {
             stopHiding()
