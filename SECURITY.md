@@ -7,7 +7,7 @@ permission and calls a private macOS API, so security reports are taken seriousl
 Please **do not** open a public issue for security problems.
 
 Instead, use GitHub's private vulnerability reporting
-(**Security → Report a vulnerability**) or email **roypadina@gmail.com**.
+(**Security → Report a vulnerability**) or open an issue asking for a private channel (without details).
 
 You'll get an acknowledgement within a few days. Once a fix is available it will be released
 and the report disclosed, with credit unless you prefer otherwise.

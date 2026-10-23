@@ -9,7 +9,10 @@
 A small native **macOS 27** menu-bar app that hides every menu-bar item to the left of its icon,
 shows them again in a tidy icon bar on demand, and lets you use a hidden item's menu **without unhiding anything**.
 
-[![macOS](https://img.shields.io/badge/macOS-27-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![macOS 27+](https://img.shields.io/badge/macOS-27%2B-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-only-555555?logo=apple&logoColor=white)](#requirements)
+[![Release](https://img.shields.io/github/v/release/roypadina/SmartHiddenBar?logo=github)](https://github.com/roypadina/SmartHiddenBar/releases/latest)
+[![Homebrew](https://img.shields.io/badge/Homebrew-cask-FBB040?logo=homebrew&logoColor=white)](#install)
 [![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white)](https://swift.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/roypadina)
@@ -20,6 +23,10 @@ shows them again in a tidy icon bar on demand, and lets you use a hidden item's 
 <img src="docs/screenshots/icon-bar.png" alt="The SmartHiddenBar icon bar: a row of the hidden apps' icons under the menu bar, below the SmartHiddenBar icon." width="600">
 
 <sub><i>The icon bar: everything currently off the menu bar, one click from its menu.</i></sub>
+
+```bash
+brew install --cask roypadina/tap/smarthiddenbar
+```
 
 </div>
 
@@ -40,15 +47,21 @@ shows them again in a tidy icon bar on demand, and lets you use a hidden item's 
 
 ## Install
 
-> **Requires macOS 27.** It will not work on earlier versions (see [Limitations](#limitations)).
-
 ```bash
 brew install --cask roypadina/tap/smarthiddenbar
 ```
 
-**Not notarized.** SmartHiddenBar is ad-hoc signed, so macOS may block the first launch. Either
-right-click it in `/Applications` → **Open** (then **Open Anyway** in System Settings → Privacy & Security),
-or clear quarantine once:
+## Requirements
+
+macOS 27 or later · Apple Silicon only (macOS 27 does not run on Intel Macs)
+
+It will not work on earlier versions (see [Limitations](#limitations)).
+
+### First launch
+
+**Not notarized.** SmartHiddenBar is ad-hoc signed, so macOS may block the first launch. Open
+**System Settings → Privacy & Security**, scroll down and click **Open Anyway** (right-click → Open
+no longer works on macOS 15+), or clear quarantine once:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/SmartHiddenBar.app"
