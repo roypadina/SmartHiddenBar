@@ -397,7 +397,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             defer { hideBar() }
             // Static menus are readable while closed: mirror with no press, no flash, nothing to close.
             // Empty = built lazily in menuNeedsUpdate, so it must be pressed open.
-            // ponytail: stale for menuNeedsUpdate-driven titles (e.g. cmux unread count); pick then no-ops on title mismatch.
+            // ponytail: stale for menuNeedsUpdate-driven titles (e.g. an unread-count title); pick then no-ops on title mismatch.
             if let m = submenu(e.element), !isOpen(m), !kids(m).isEmpty {
                 return popUp(mirror(m, item: e.element, path: []), below: view)
             }
