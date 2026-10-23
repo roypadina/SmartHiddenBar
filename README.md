@@ -14,6 +14,7 @@ shows them again in a tidy icon bar on demand, and lets you use a hidden item's 
 [![Release](https://img.shields.io/github/v/release/roypadina/SmartHiddenBar?logo=github)](https://github.com/roypadina/SmartHiddenBar/releases/latest)
 [![Homebrew](https://img.shields.io/badge/Homebrew-cask-FBB040?logo=homebrew&logoColor=white)](#install)
 [![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white)](https://swift.org)
+[![Website](https://img.shields.io/badge/website-apps.roypadina-2F62E6)](https://apps.roypadina.synology.me/apps/smarthiddenbar/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/roypadina)
 [![Stars](https://img.shields.io/github/stars/roypadina/SmartHiddenBar?style=social)](https://github.com/roypadina/SmartHiddenBar/stargazers)
@@ -139,6 +140,15 @@ Or quit it, drag `/Applications/SmartHiddenBar.app` to the Trash, and remove it 
 
 The hiding approach and the private-API shim pattern come from [Hidden Bar](https://github.com/dwarvesf/hidden)
 by Dwarves Foundation (MIT); see [LICENSE](LICENSE) for its notice.
+
+## More Mac apps by Roy
+
+Free, open-source Mac menu-bar apps and terminal tools, all on one site: **[apps.roypadina.synology.me](https://apps.roypadina.synology.me/)**.
+
+- [LanGuard](https://apps.roypadina.synology.me/apps/languard/) — Wi-Fi off when you're wired. Back on when you're not.
+- [Window Organizer](https://apps.roypadina.synology.me/apps/window-organizer/) — Clear the desk in one keystroke.
+- [VaultBar](https://apps.roypadina.synology.me/apps/vaultbar/) — Your encrypted vaults, one click from the menu bar.
+- [MeetAlert](https://apps.roypadina.synology.me/apps/meetalert/) — Meeting alerts you can't miss: a popup that stays, a phone push that escalates.
 
 ## Support
 
