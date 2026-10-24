@@ -20,7 +20,7 @@ cd SmartHiddenBar
 Requirements: **macOS 27**, Xcode command line tools (`swiftc`). The app must run from
 `/Applications` (see the README); `build.sh` refuses to replace a running copy, so quit it first.
 
-`./build.sh` signs with a stable local code-signing identity (the name is set in `build.sh`; edit it to yours) if present and
+`./build.sh` signs with a stable local code-signing identity (the name is set in `build.sh`; edit it to yours, or set `SHB_SIGN_IDENTITY`) if present and
 falls back to ad-hoc otherwise. Ad-hoc changes the code hash every build, so you must
 re-grant Accessibility after each rebuild
 (`tccutil reset Accessibility com.roypadina.SmartHiddenBar`, then grant again).
