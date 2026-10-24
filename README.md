@@ -60,7 +60,7 @@ It will not work on earlier versions (see [Limitations](#limitations)).
 
 ### First launch
 
-**Not notarized.** SmartHiddenBar is ad-hoc signed, so macOS may block the first launch. Open
+**Not notarized.** SmartHiddenBar is signed with a self-signed identity (no Apple Developer ID), so macOS may block the first launch. Open
 **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (right-click → Open
 no longer works on macOS 15+), or clear quarantine once:
 
@@ -72,7 +72,7 @@ xattr -dr com.apple.quarantine "/Applications/SmartHiddenBar.app"
 
 - **Run it from `/Applications`.** On macOS 27, MenuBarAgent resolves the allow-listed app through
   LaunchServices, which picks the `/Applications` copy; a copy anywhere else gets hidden along with the rest, so the app quits with a message.
-- **Accessibility (required).** It reads other apps' menu bar items through the Accessibility API. **After every update you must re-grant it** (the ad-hoc signature changes with each build): toggle SmartHiddenBar off and on in System Settings → Privacy & Security → Accessibility, or reset and grant again:
+- **Accessibility (required).** It reads other apps' menu bar items through the Accessibility API. **Since 1.3.2 releases share one stable signature, so the grant survives updates; after updating from an older version re-grant it once**: toggle SmartHiddenBar off and on in System Settings → Privacy & Security → Accessibility, or reset and grant again:
   ```bash
   tccutil reset Accessibility com.roypadina.SmartHiddenBar
   ```
@@ -126,7 +126,7 @@ cd SmartHiddenBar
 ./build.sh   # builds and installs /Applications/SmartHiddenBar.app (quit a running copy first)
 ```
 
-`RELEASE=1 ./build.sh` makes an ad-hoc `build/SmartHiddenBar.zip` without installing. See [CONTRIBUTING.md](CONTRIBUTING.md).
+`RELEASE=1 ./build.sh` makes a `build/SmartHiddenBar.zip` (signed with the maintainer identity when present, else ad-hoc) without installing. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Uninstall
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds build/SmartHiddenBar.app, signed with a stable local identity (ad-hoc fallback), installs to /Applications.
-# RELEASE=1 ./build.sh -> ad-hoc build + build/SmartHiddenBar.zip, no install. CI=1 -> ad-hoc compile check, no install.
+# RELEASE=1 ./build.sh -> identity-signed build + build/SmartHiddenBar.zip, no install. CI=1 -> ad-hoc compile check, no install.
 SET=fold-chevron  # icon set in Assets/icons/: fold-chevron | peek-strip | curtain-panel
 set -e
 cd "$(dirname "$0")"
@@ -11,9 +11,9 @@ cp Info.plist "$APP/Contents/"
 I=Assets/icons/$SET
 cp "$I"/menubar-hidden.png "$I"/menubar-hidden@2x.png "$I"/menubar-shown.png "$I"/menubar-shown@2x.png "$I"/AppIcon.icns "$APP/Contents/Resources/"
 # A stable identity keeps the Accessibility grant across rebuilds; ad-hoc (-) gets a new hash each build.
-ID="KeyLayoutSwitcher Dev"
-security find-identity -v -p codesigning | grep -q "\"$ID\"" || ID=-
-[ -n "$RELEASE$CI" ] && ID=-  # release / CI builds: ad-hoc, no local identity
+ID="${SHB_SIGN_IDENTITY:-KeyLayoutSwitcher Dev}"
+security find-identity -v -p codesigning | grep -q "\"$ID\"" || { ID=-; echo "signing identity missing: ad-hoc build"; }
+[ -n "$CI" ] && ID=-  # CI: ad-hoc compile check
 codesign -f -s "$ID" "$APP"
 # A build/ copy LaunchServices knows about can win the bundle-id lookup over /Applications: keep it unregistered.
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$APP" 2>/dev/null || true

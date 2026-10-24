@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-10-25
+
+### Changed
+- Releases are now signed with a stable identity, so permissions survive future updates. After this one update you may need to re-allow Accessibility once.
+
 ## [1.3.1] - 2026-10-23
 
 ### Added
