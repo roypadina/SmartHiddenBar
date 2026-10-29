@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-10-29
+
+### Fixed
+- Hiding right after you ⌘-drag the icon, or soon after showing, no longer hides the apps to the right of the icon too ([#7](https://github.com/roypadina/SmartHiddenBar/issues/7)). SmartHiddenBar now re-reads the menu bar instead of trusting a position from before the move.
+
+### Changed
+- The log now names each app that moves into or out of the hidden set, with its position relative to the icon.
+
 ## [1.3.2] - 2026-10-25
 
 ### Changed
