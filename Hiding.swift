@@ -87,6 +87,7 @@ extension Lister {
     }
 
     @objc func refreshHide() {
+        if AXIsProcessTrusted() != iconTrusted { updateIcon() }  // UI state only: the warning icon follows the Accessibility grant
         guard AXIsProcessTrusted() else { return }
         DispatchQueue.global(qos: .userInitiated).async {
             let all = extras(), me = ownFrame()

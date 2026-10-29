@@ -41,6 +41,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         set { UserDefaults.standard.set(newValue, forKey: "disabled") }
     }
     var broken = false  // hiding failed this launch: stay shown, don't retry until the user clicks
+    var iconTrusted = AXIsProcessTrusted()  // the Accessibility state updateIcon last drew (refreshHide redraws on a change)
     var alerted = false  // missing-API alert shown this launch
     var rehide: Timer?
     lazy var settings: NSWindow = {
@@ -286,13 +287,22 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func updateIcon() {
+        iconTrusted = AXIsProcessTrusted()
         let h = hidden && !broken && !disabled
+        // Can't hide: a different shape (not a color) with the next step in the tooltip and the accessibility label.
+        let warning = disabled ? nil
+            : !iconTrusted ? "SmartHiddenBar needs Accessibility. Click for steps."
+            : broken ? "SmartHiddenBar couldn't hide items. Click to try again." : nil
         status.button?.appearsDisabled = disabled
-        let img = NSImage(named: h ? "menubar-hidden" : "menubar-shown")
+        let img = warning != nil ? NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
+            : NSImage(named: h ? "menubar-hidden" : "menubar-shown")
             ?? NSImage(systemSymbolName: h ? "chevron.right" : "chevron.left", accessibilityDescription: nil)
         img?.isTemplate = true
-        img?.accessibilityDescription = "SmartHiddenBar — items \(h ? "hidden" : "shown")"
+        let label = warning ?? "SmartHiddenBar — items \(h ? "hidden" : "shown")"
+        img?.accessibilityDescription = label
         status.button?.image = img
+        status.button?.toolTip = label
+        status.button?.window?.allowsToolTipsWhenApplicationIsInactive = true  // we're never active, so no hover text without this
     }
 
     /// Shortcuts (Shortcuts.swift): id 1 = toggle hiding (a left click), 2 = icon bar — works even when macOS hides our own icon.
@@ -321,7 +331,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let button = status.button else { return }
         let e = NSApp.currentEvent, flags = NSEvent.modifierFlags  // macOS 27 status clicks carry no modifiers/clickCount
         if flags.contains(.option) { return barUp ? hideBar() : showBar() }
-        if e?.type == .rightMouseUp || flags.contains(.control) || disabled { return popUp(menu, below: button) }
+        if e?.type == .rightMouseUp || flags.contains(.control) || disabled || !AXIsProcessTrusted() { return popUp(menu, below: button) }
         switch clickMode(mouseScreen()) {
         case "toggle": toggleHidden()
         case "bar": barUp ? hideBar() : showBar()
