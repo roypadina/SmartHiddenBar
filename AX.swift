@@ -71,6 +71,15 @@ func onBar(_ y: CGFloat) -> Bool {
     return NSScreen.screens.contains { (-1..<10).contains(y - (h - $0.frame.maxY)) }
 }
 
+/// Distance of AX x from the right edge of the display whose menu bar holds (x, y). Every display's bar is right-aligned
+/// with the same items, and our item reports the active display's bar while other apps may still report another one,
+/// so left/right of us is decided on this, not on raw x. No matching display (parked) = raw x mirrored, unused.
+func fromRight(_ x: CGFloat, _ y: CGFloat) -> CGFloat {
+    let h = NSScreen.screens.first?.frame.maxY ?? 0
+    let s = NSScreen.screens.first { ($0.frame.minX..<$0.frame.maxX).contains(x) && (-1..<10).contains(y - (h - $0.frame.maxY)) }
+    return (s?.frame.maxX ?? 0) - x
+}
+
 /// Our own status item's AX frame. Never call on the main thread: the main thread is what answers it.
 func ownFrame() -> CGRect? {
     guard let bar = ax(AXUIElementCreateApplication(getpid()), "AXExtrasMenuBar"), let raw = kids(bar as! AXUIElement).first else { return nil }
