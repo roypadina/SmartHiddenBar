@@ -61,6 +61,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         UserDefaults.standard.register(defaults: ["hidden": true, "iconBarSize": 24.0, "NSInitialToolTipDelay": 200])  // ms
         checkLocation()
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        installMainMenu()
         status.autosaveName = "SmartHiddenBar"
         menu.delegate = self
         status.menu = nil  // every click reaches `clicked`; the menu is popped up by hand
@@ -83,6 +84,29 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_ n: Notification) { stopHiding() }
+
+    /// Opening SmartHiddenBar again (Finder, Raycast) shows Settings: the way in when macOS drops our own icon (MBX-8).
+    @MainActor func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { openSettings() }
+        return true
+    }
+
+    /// Menus for while a window is open and AccessoryWindows has made us a regular app (⌘, ⌘W ⌘Q work there).
+    func installMainMenu() {
+        let main = NSMenu(), app = NSMenu(), window = NSMenu(title: "Window")
+        func add(_ m: NSMenu, _ title: String, _ action: Selector, _ key: String, target: AnyObject? = nil) {
+            m.addItem(withTitle: title, action: action, keyEquivalent: key).target = target
+        }
+        add(app, "About SmartHiddenBar", #selector(showAbout), "", target: self)
+        add(app, "Settings…", #selector(openSettings), ",", target: self)
+        app.addItem(.separator())
+        add(app, "Quit SmartHiddenBar", #selector(NSApplication.terminate(_:)), "q")
+        add(window, "Close", #selector(NSWindow.performClose(_:)), "w")
+        main.addItem(withTitle: "", action: nil, keyEquivalent: "").submenu = app
+        main.addItem(withTitle: "Window", action: nil, keyEquivalent: "").submenu = window
+        NSApp.mainMenu = main
+        NSApp.windowsMenu = window
+    }
 
     /// The allow-list matches bundle ids through LaunchServices, so a copy LS doesn't resolve to hides its own icon.
     func checkLocation() {
@@ -324,10 +348,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func grantAccessibility() { openPane("Privacy_Accessibility") }
 
-    @objc func openSettings() {
-        NSApp.activate()
-        settings.makeKeyAndOrderFront(nil)
-    }
+    @MainActor @objc func openSettings() { AccessoryWindows.shared.show(settings) }
 
     func popUp(_ m: NSMenu, below view: NSView) {
         m.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.height + 4), in: view)
@@ -361,7 +382,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func noop() {}
 
-    @objc func showAbout() { AboutWindow.show() }
+    @MainActor @objc func showAbout() { AboutWindow.show() }
 
     @objc func openKofi() { NSWorkspace.shared.open(kofiURL) }
 
