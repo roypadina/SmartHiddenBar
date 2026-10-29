@@ -72,8 +72,17 @@ extension Lister {
     }
 
     /// Apply at once from the last inventory (the 5 s poll keeps it fresh), then re-read to catch anything that moved.
+    /// Skip the cache when it can't be trusted: our item was ⌘-dragged since that read (its left/right split is for the old
+    /// spot), or it still shows a bundle parked that `denied` remembers as left — read before macOS had placed it after a
+    /// show; hiding it from memory parks it again, and a parked item is never seen right of us, so the memory never heals.
+    /// ponytail: an always-hidden bundle denied earlier this launch makes every hide take the fresh read (+~100 ms).
     func hideNow() {
-        if !last.isEmpty { applyHide(last, lastMe) }
+        let fromMemory = last.contains { !onBar($0.y) && denied.contains($0.app.bundleIdentifier ?? "") }
+        if let m = lastMe, let x = status.button?.window?.frame.midX, abs(x - m.midX) > 1 {
+            log("hide: own item moved \(Int(m.midX)) → \(Int(x)) since the last read, cache skipped")
+        } else if !last.isEmpty, !fromMemory {
+            applyHide(last, lastMe)
+        }
         refreshHide()
     }
 
@@ -129,6 +138,8 @@ extension Lister {
             log("hide: \(e.name) kept off the bar by macOS (System Settings › Menu Bar › Allow in the Menu Bar), not by us")
         }
         if left.isEmpty, denied.isEmpty, !UserDefaults.standard.bool(forKey: "firstRunHintShown") { firstRunHint() }
+        let newly = left.subtracting(denied).subtracting(right), back = denied.intersection(right)
+        if !newly.isEmpty || !back.isEmpty { log("hide: me \(Int(me.midX)) denied +\(newly.sorted()) -\(back.sorted())") }
         denied = denied.union(left).subtracting(right)
         let own = Bundle.main.bundleIdentifier ?? "com.roypadina.SmartHiddenBar"
         // System owners too: phase 1 never hides macOS's own items (Now Playing may be bundle-owned, not a system id).
