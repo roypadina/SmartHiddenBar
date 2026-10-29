@@ -38,8 +38,32 @@ struct SettingsView: View {
     @State var apps = menuBarApps()
     @State var asked = false  // Screen Recording already requested once from here: the button opens Settings instead
 
+    /// First section while Accessibility is missing (nothing hides without it), otherwise between Icon Bar and Always Hidden.
+    var permissions: some View {
+        Section {
+            LabeledContent("Accessibility") {
+                HStack {
+                    Text(axOK ? "Granted" : "Not granted").foregroundStyle(.secondary)
+                    Button("Open System Settings") { openPane("Privacy_Accessibility") }
+                }
+            }
+            LabeledContent("Screen Recording") {
+                HStack {
+                    Text(screenOK ? "Granted" : "Not granted").foregroundStyle(.secondary)
+                    Button(screenOK || asked ? "Open System Settings" : "Request") {
+                        if screenOK || asked { openPane("Privacy_ScreenCapture") } else { asked = true; screenOK = CGRequestScreenCaptureAccess() }
+                    }
+                }
+            }
+        } header: { Text("Permissions") } footer: {
+            Text("Accessibility lets SmartHiddenBar see other apps' menu bar items. Required: without it nothing hides. Screen Recording only shows real menu bar icons in the icon bar. Optional.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         Form {
+            if !axOK { permissions }
             Section {
                 LaunchAtLoginToggle()
                 Picker("Auto-rehide after", selection: $rehide) {
@@ -49,7 +73,6 @@ struct SettingsView: View {
                 }
                 Toggle("Show items when hovering empty menu bar space", isOn: $hoverReveal)
                 Toggle("Click empty menu bar space to show / hide", isOn: $clickEmptyBar)
-                ForEach(shortcutActions, id: \.key) { ShortcutRow(key: $0.key, label: "\($0.label) shortcut") }
             } header: { Text("General") }
             Section {
                 ForEach(NSScreen.screens, id: \.localizedName) { screen in
@@ -64,6 +87,33 @@ struct SettingsView: View {
             } header: { Text("Click") } footer: {
                 Text("What a left click on the SmartHiddenBar icon does on each display. ⌥-click always opens the icon bar.").foregroundStyle(.secondary)
             }
+            Section {
+                ForEach(shortcutActions, id: \.key) { ShortcutRow(key: $0.key, label: $0.label) }
+            } header: { Text("Shortcuts") } footer: {
+                Text("Click a shortcut, then press it with ⌃, ⌥ or ⌘. Esc cancels, Delete turns it off. List apps opens any menu bar app's menu from the keyboard.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
+                Picker("Icons", selection: $iconStyle) {
+                    Text("App icons").tag("app")
+                    Text("Real menu bar icons").tag("real")
+                }.onChange(of: iconStyle) { _, style in
+                    if style == "real", !CGPreflightScreenCaptureAccess() { asked = true; _ = CGRequestScreenCaptureAccess() }
+                }
+                LabeledContent("Icon size") {
+                    HStack {
+                        Slider(value: $iconSize, in: 16...48, step: 2).labelsHidden()
+                        Text("\(Int(iconSize)) pt").monospacedDigit().foregroundStyle(.secondary)
+                    }
+                }
+                Toggle("Show names in icon bar", isOn: $names)
+            } header: { Text("Icon Bar") } footer: {
+                Text(iconStyle == "real" && !screenOK
+                     ? "Screen Recording isn't granted, so app icons are shown. Grant it under Permissions."
+                     : "Real icons need Screen Recording; macOS asks about once a month whether to keep allowing screen access.")
+                    .foregroundStyle(.secondary)
+            }
+            if axOK { permissions }
             Section {
                 Picker("New menu bar apps", selection: $newApps) {
                     Text("Show normally").tag("show")
@@ -87,37 +137,12 @@ struct SettingsView: View {
                     }
                 }
                 if apps.isEmpty { Text("No menu bar apps found yet").foregroundStyle(.secondary) }
-            } header: { Text("Always hidden") } footer: {
+            } header: { Text("Always Hidden") } footer: {
                 Text("Stay hidden even when items are shown; reach them from the icon bar.").foregroundStyle(.secondary)
-            }
-            Section {
-                Picker("Icons", selection: $iconStyle) {
-                    Text("App icons").tag("app")
-                    Text("Real menu bar icons").tag("real")
-                }.onChange(of: iconStyle) { _, style in
-                    if style == "real", !CGPreflightScreenCaptureAccess() { asked = true; _ = CGRequestScreenCaptureAccess() }
-                }
-                Slider(value: $iconSize, in: 16...48, step: 2) { Text("Icon size in icon bar: \(Int(iconSize)) pt") }
-                Toggle("Show names in icon bar", isOn: $names)
-            } header: { Text("Hidden items") } footer: {
-                Text(iconStyle == "real" && !screenOK
-                     ? "Screen Recording isn't granted, so app icons are shown. Grant it under Permissions."
-                     : "Real icons need Screen Recording; macOS asks about once a month whether to keep allowing screen access.")
-                    .foregroundStyle(.secondary)
-            }
-            Section("Permissions") {
-                LabeledContent("Accessibility \(axOK ? "✓" : "✗")") {
-                    Button("Open System Settings") { openPane("Privacy_Accessibility") }
-                }
-                LabeledContent("Screen Recording \(screenOK ? "✓" : "✗")") {
-                    Button(screenOK || asked ? "Open System Settings" : "Request") {
-                        if screenOK || asked { openPane("Privacy_ScreenCapture") } else { asked = true; screenOK = CGRequestScreenCaptureAccess() }
-                    }
-                }
             }
             Section("About") {
                 HStack(spacing: 12) {
-                    Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48)
+                    Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48).accessibilityHidden(true)
                     VStack(alignment: .leading) {
                         Text("SmartHiddenBar").font(.headline)
                         Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")").foregroundStyle(.secondary)
@@ -193,7 +218,7 @@ struct AboutView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96).accessibilityHidden(true)
             VStack(spacing: 2) {
                 Text("SmartHiddenBar").font(.title.bold())
                 Text("Version \(info["CFBundleShortVersionString"] as? String ?? "") (\(info["CFBundleVersion"] as? String ?? ""))")
