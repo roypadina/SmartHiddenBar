@@ -41,6 +41,7 @@ extension Lister {
     // ponytail: fixed 1 s settle; items still parked then are allowed (fail open) until the next 5 s poll re-denies them.
     @objc func reapply() {
         broken = false
+        updateIcon()  // UI state only: the warning triangle goes with `broken`
         guard hidden || !alwaysHidden.isEmpty else { return }
         log("hide: re-applying after screen change / wake")
         stopHiding()

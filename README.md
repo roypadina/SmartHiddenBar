@@ -100,7 +100,7 @@ macOS 27's `MenuBarAgent` has a private "assessment mode" allow-list (`MenuBarCl
 process holds it, the bar shows only the allowed apps plus system items. SmartHiddenBar allows
 itself, the system items, and every app whose item sits to the right of its icon; apps left of the icon are denied. Hiding is
 therefore **per app, not per item**. Nothing is moved or modified: quitting SmartHiddenBar
-(or "Show items") releases the allow-list and the full bar comes back. Item lists and menus are read, and
+(or "Show Items") releases the allow-list and the full bar comes back. Item lists and menus are read, and
 menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring copies the real menu, closes it, and replays your pick on the real one.
 
 ## Limitations
