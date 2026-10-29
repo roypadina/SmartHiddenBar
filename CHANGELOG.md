@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-30
+
 ### Added
 - A Welcome window on first launch (and once after this update) explains why SmartHiddenBar exists, how to hide and reach items, why it needs Accessibility, and asks for it. Open it again from Settings > About > Welcome Guide…
 - Opening SmartHiddenBar again from Finder or Raycast now shows Settings, so you can get in even when macOS has dropped its icon from the menu bar.
