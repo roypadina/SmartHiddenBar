@@ -103,8 +103,7 @@ extension Lister {
 
     /// Hidden: allow = us + system owners + every bundle with an item right of our midX + parked bundles never seen left of us.
     /// Shown: allow = every bundle on the bar. Either way minus the always-hidden list (shown + empty list = no restriction).
-    /// ponytail: one AX coordinate space assumed (macOS 27 reports one bar here even with 3 displays); per-display
-    /// projection like Hidden Bar PR #422 if the log shows items on other screens.
+    /// Several displays: positions are compared as distance from their own display's right edge (`fromRight`).
     func applyHide(_ all: [Extra], _ me: CGRect?) {
         let always = alwaysHidden
         guard !disabled, hidden || !always.isEmpty, !broken, !ncOpen else { return }
@@ -119,7 +118,7 @@ extension Lister {
         for e in all {
             guard let b = e.app.bundleIdentifier else { continue }
             if !onBar(e.y) { parked.insert(b) }
-            else if e.x + e.width / 2 > me.midX { right.insert(b) }
+            else if fromRight(e.x + e.width / 2, e.y) < fromRight(me.midX, me.minY) { right.insert(b) }
             else { left.insert(b) }
         }
         // Parked for more than a poll although our list allows it = macOS itself keeps it off the bar: System Settings ›

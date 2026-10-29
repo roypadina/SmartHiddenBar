@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-10-29
+
+### Fixed
+- With several displays, apps no longer flip between hidden and shown as you move between screens. The menu bar each app reports can lag behind the active display, so SmartHiddenBar now compares positions as distance from each display's right edge.
+
 ## [1.3.3] - 2026-10-29
 
 ### Fixed
