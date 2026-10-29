@@ -29,7 +29,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var last: [Extra] = []  // latest background inventory (refreshHide); the menu and icon bar never walk AX on main
     var monitor: Any?
     var barNames: Bool { UserDefaults.standard.bool(forKey: "iconBarNames") }
-    /// Apps kept off the bar even while items are shown (Settings → Always hidden).
+    /// Apps kept off the bar even while items are shown (Settings → Always Hidden).
     var alwaysHidden: Set<String> { Set(UserDefaults.standard.stringArray(forKey: "alwaysHidden") ?? []) }
     var hidden: Bool {
         get { UserDefaults.standard.bool(forKey: "hidden") }
@@ -41,6 +41,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         set { UserDefaults.standard.set(newValue, forKey: "disabled") }
     }
     var broken = false  // hiding failed this launch: stay shown, don't retry until the user clicks
+    var iconTrusted = AXIsProcessTrusted()  // the Accessibility state updateIcon last drew (refreshHide redraws on a change)
     var alerted = false  // missing-API alert shown this launch
     var rehide: Timer?
     lazy var settings: NSWindow = {
@@ -60,7 +61,13 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ n: Notification) {
         UserDefaults.standard.register(defaults: ["hidden": true, "iconBarSize": 24.0, "NSInitialToolTipDelay": 200])  // ms
         checkLocation()
-        AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        if UserDefaults.standard.bool(forKey: "didShowWelcome") {
+            AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        } else {  // the welcome window explains the Accessibility prompt and asks for it
+            UserDefaults.standard.set(true, forKey: "didShowWelcome")
+            WelcomeWindow.show()
+        }
+        installMainMenu()
         status.autosaveName = "SmartHiddenBar"
         menu.delegate = self
         status.menu = nil  // every click reaches `clicked`; the menu is popped up by hand
@@ -84,6 +91,29 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ n: Notification) { stopHiding() }
 
+    /// Opening SmartHiddenBar again (Finder, Raycast) shows Settings: the way in when macOS drops our own icon (MBX-8).
+    @MainActor func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { openSettings() }
+        return true
+    }
+
+    /// Menus for while a window is open and AccessoryWindows has made us a regular app (⌘, ⌘W ⌘Q work there).
+    func installMainMenu() {
+        let main = NSMenu(), app = NSMenu(), window = NSMenu(title: "Window")
+        func add(_ m: NSMenu, _ title: String, _ action: Selector, _ key: String, target: AnyObject? = nil) {
+            m.addItem(withTitle: title, action: action, keyEquivalent: key).target = target
+        }
+        add(app, "About SmartHiddenBar", #selector(showAbout), "", target: self)
+        add(app, "Settings…", #selector(openSettings), ",", target: self)
+        app.addItem(.separator())
+        add(app, "Quit SmartHiddenBar", #selector(NSApplication.terminate(_:)), "q")
+        add(window, "Close", #selector(NSWindow.performClose(_:)), "w")
+        main.addItem(withTitle: "", action: nil, keyEquivalent: "").submenu = app
+        main.addItem(withTitle: "Window", action: nil, keyEquivalent: "").submenu = window
+        NSApp.mainMenu = main
+        NSApp.windowsMenu = window
+    }
+
     /// The allow-list matches bundle ids through LaunchServices, so a copy LS doesn't resolve to hides its own icon.
     func checkLocation() {
         let me = URL(fileURLWithPath: Bundle.main.bundlePath).resolvingSymlinksInPath().path
@@ -106,10 +136,12 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard ls != me else { return }
         log("launch: running \(me), LaunchServices resolves \(ls ?? "nothing")")
         let a = NSAlert()
-        a.messageText = "Move SmartHiddenBar to /Applications and open it from there."
+        a.messageText = "SmartHiddenBar must run from Applications"
+        a.informativeText = "macOS lets SmartHiddenBar hide menu bar items only when it runs from the Applications folder. Move it there, then open it again."
+        a.addButton(withTitle: "Show in Finder")
         a.addButton(withTitle: "Quit")
         NSApp.activate()
-        a.runModal()
+        if a.runModal() == .alertFirstButtonReturn { NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL]) }
         exit(0)
     }
 
@@ -257,13 +289,22 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func updateIcon() {
+        iconTrusted = AXIsProcessTrusted()
         let h = hidden && !broken && !disabled
+        // Can't hide: a different shape (not a color) with the next step in the tooltip and the accessibility label.
+        let warning = disabled ? nil
+            : !iconTrusted ? "SmartHiddenBar needs Accessibility. Click for steps."
+            : broken ? "SmartHiddenBar couldn't hide items. Click to try again." : nil
         status.button?.appearsDisabled = disabled
-        let img = NSImage(named: h ? "menubar-hidden" : "menubar-shown")
+        let img = warning != nil ? NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
+            : NSImage(named: h ? "menubar-hidden" : "menubar-shown")
             ?? NSImage(systemSymbolName: h ? "chevron.right" : "chevron.left", accessibilityDescription: nil)
         img?.isTemplate = true
-        img?.accessibilityDescription = "SmartHiddenBar — items \(h ? "hidden" : "shown")"
+        let label = warning ?? "SmartHiddenBar — items \(h ? "hidden" : "shown")"
+        img?.accessibilityDescription = label
         status.button?.image = img
+        status.button?.toolTip = label
+        status.button?.window?.allowsToolTipsWhenApplicationIsInactive = true  // we're never active, so no hover text without this
     }
 
     /// Shortcuts (Shortcuts.swift): id 1 = toggle hiding (a left click), 2 = icon bar — works even when macOS hides our own icon.
@@ -287,23 +328,12 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }, 1, &spec, nil, nil)
     }
 
-    /// Once ever: nothing sits left of our icon yet, so explain how to use it.
-    func firstRunHint() {
-        UserDefaults.standard.set(true, forKey: "firstRunHintShown")
-        let a = NSAlert()
-        a.messageText = "Move the SmartHiddenBar icon"
-        a.informativeText = "⌘-drag the SmartHiddenBar icon to the right; everything left of it hides. "
-            + "\(Shortcut.stored("barShortcut").map { "\($0.label) (or ⌥-click)" } ?? "⌥-click") shows hidden items."
-        NSApp.activate()
-        a.runModal()
-    }
-
     /// Left = the display's click mode (Settings → Click); right / ⌃-left = menu; ⌥-left = icon bar.
     @objc func clicked() {
         guard let button = status.button else { return }
         let e = NSApp.currentEvent, flags = NSEvent.modifierFlags  // macOS 27 status clicks carry no modifiers/clickCount
         if flags.contains(.option) { return barUp ? hideBar() : showBar() }
-        if e?.type == .rightMouseUp || flags.contains(.control) || disabled { return popUp(menu, below: button) }
+        if e?.type == .rightMouseUp || flags.contains(.control) || disabled || !AXIsProcessTrusted() { return popUp(menu, below: button) }
         switch clickMode(mouseScreen()) {
         case "toggle": toggleHidden()
         case "bar": barUp ? hideBar() : showBar()
@@ -324,16 +354,13 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func grantAccessibility() { openPane("Privacy_Accessibility") }
 
-    @objc func openSettings() {
-        NSApp.activate()
-        settings.makeKeyAndOrderFront(nil)
-    }
+    @MainActor @objc func openSettings() { AccessoryWindows.shared.show(settings) }
 
     func popUp(_ m: NSMenu, below view: NSView) {
         m.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.height + 4), in: view)
     }
 
-    /// Right-click menu: Show/Hide · Apps ▸ · Settings… · Quit, each showing its recorded shortcut.
+    /// Right-click menu: Show/Hide Items · Menu Bar Apps ▸ · Settings… · Quit, each showing its recorded shortcut.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         func row(_ title: String, _ action: Selector, _ shortcut: String, fallback: String = "") -> NSMenuItem {
@@ -343,9 +370,9 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return item
         }
         if !AXIsProcessTrusted() { menu.addItem(row("Grant Accessibility…", #selector(grantAccessibility), "")) }
-        if !disabled { menu.addItem(row(hidden ? "Show items" : "Hide items", #selector(toggleHidden), "toggleShortcut")) }
+        if !disabled { menu.addItem(row(hidden ? "Show Items" : "Hide Items", #selector(toggleHidden), "toggleShortcut")) }
         menu.addItem(row(disabled ? "Enable SmartHiddenBar" : "Disable SmartHiddenBar", #selector(toggleDisabled), ""))
-        let apps = row("Apps", #selector(noop), "appsShortcut")
+        let apps = row("Menu Bar Apps", #selector(noop), "appsShortcut")
         apps.submenu = appsMenu()
         menu.addItem(apps)
         menu.addItem(.separator())
@@ -353,15 +380,14 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(row("About SmartHiddenBar", #selector(showAbout), ""))
         menu.addItem(row("Support on Ko-fi ☕", #selector(openKofi), ""))
-        menu.addItem(.separator())
-        let quit = row("Quit", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q")
+        let quit = row("Quit SmartHiddenBar", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q")
         quit.target = NSApp  // `self` doesn't implement terminate:, so with target = self the item auto-disables
         menu.addItem(quit)
     }
 
     @objc func noop() {}
 
-    @objc func showAbout() { AboutWindow.show() }
+    @MainActor @objc func showAbout() { AboutWindow.show() }
 
     @objc func openKofi() { NSWorkspace.shared.open(kofiURL) }
 

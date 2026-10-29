@@ -40,10 +40,12 @@ brew install --cask roypadina/tap/smarthiddenbar
 - **Always hidden.** Pick apps that stay off the bar even while items are shown; reach them from the icon bar. Optionally, new menu bar apps go straight onto the list.
 - **Icon bar.** Everything currently off the bar, as a row of icons under SmartHiddenBar's icon: ⌥-click, the click mode, or a keyboard shortcut (⌃⌥B by default, recordable in Settings). Hover an icon for its name; adjustable icon size.
 - **Hover or click empty menu bar space** to show / hide (both optional).
-- **Right-click menu.** Show/Hide items, Disable/Enable SmartHiddenBar (disabled = nothing hidden, always-hidden included, as if quit), an **Apps** submenu listing every third-party menu bar app (icon + name), Settings… and Quit. Each has its own recordable shortcut.
+- **Right-click menu.** Show Items / Hide Items, Disable/Enable SmartHiddenBar (disabled = nothing hidden, always-hidden included, as if quit), a **Menu Bar Apps** submenu listing every third-party menu bar app (icon + name), Settings…, About, Support and Quit SmartHiddenBar. Most have their own recordable shortcut.
 - **Menu mirroring.** Pick a hidden item and use its menu from under SmartHiddenBar's icon, without unhiding it.
 - **Real menu bar icons (optional).** With Screen Recording, the icon bar shows each item's actual menu-bar icon instead of the app icon.
-- **Auto-rehide** after 5 / 10 / 30 / 60 s or as soon as the pointer leaves the menu bar, and **launch at login**.
+- **Auto-rehide** after 5 / 10 / 30 / 60 s or as soon as the pointer leaves the menu bar, and **Open at Login**.
+- **Welcome window.** First launch (and once after updating to 1.4.0) explains what SmartHiddenBar does, how to hide and reach items and why it needs Accessibility, and asks for it. Reopen it from Settings → About → Welcome Guide…
+- **Tells you when it can't hide.** The menu bar icon turns into a warning triangle, with a tooltip saying what to do, when Accessibility isn't granted or hiding failed.
 - **Notification Center keeps working:** clicking the clock lifts hiding until Notification Center closes.
 
 ## Install
@@ -71,14 +73,15 @@ xattr -dr com.apple.quarantine "/Applications/SmartHiddenBar.app"
 ### Required setup
 
 - **Run it from `/Applications`.** On macOS 27, MenuBarAgent resolves the allow-listed app through
-  LaunchServices, which picks the `/Applications` copy; a copy anywhere else gets hidden along with the rest, so the app quits with a message.
+  LaunchServices, which picks the `/Applications` copy; a copy anywhere else gets hidden along with the rest, so the app says so, offers Show in Finder and quits.
 - **Accessibility (required).** It reads other apps' menu bar items through the Accessibility API. **Since 1.3.2 releases share one stable signature, so the grant survives updates; after updating from an older version re-grant it once**: toggle SmartHiddenBar off and on in System Settings → Privacy & Security → Accessibility, or reset and grant again:
   ```bash
   tccutil reset Accessibility com.roypadina.SmartHiddenBar
   ```
+  The Welcome window asks for it on first launch; until it is granted the menu bar icon is a warning triangle and its menu starts with **Grant Accessibility…**.
 - **Screen Recording (optional).** Only for "Real menu bar icons" in Settings. macOS asks about once a month whether to keep allowing it.
 
-On first run, ⌘-drag the SmartHiddenBar icon to the right of the items you want hidden.
+On first run, follow the Welcome window, then ⌘-drag the SmartHiddenBar icon to the right of the items you want hidden. Opening SmartHiddenBar again from Finder or Raycast shows Settings, so you can always get in, even when macOS has dropped its icon from the menu bar. While Settings, About or Welcome is open it also shows in the Dock and Cmd-Tab.
 
 ## Usage
 
@@ -90,9 +93,9 @@ On first run, ⌘-drag the SmartHiddenBar icon to the right of the items you wan
 | Hover / click empty menu bar space (off by default) | Show items (hover: until the pointer leaves the bar) / show or hide |
 | Click (or right-click) an icon in the icon bar | That item's menu, under SmartHiddenBar's icon |
 | Hover an icon in the icon bar | Its app name |
-| Right-click (or ⌃-click) | Show/Hide items · Disable/Enable SmartHiddenBar · Apps ▸ (every third-party menu bar app; pick one to use its menu) · Settings… · Quit |
+| Right-click (or ⌃-click) | Show Items / Hide Items · Disable/Enable SmartHiddenBar · Menu Bar Apps ▸ (every third-party menu bar app; pick one to use its menu) · Settings… · About · Support · Quit SmartHiddenBar |
 
-Settings: launch at login, auto-rehide (after a delay or when the pointer leaves the bar), hover / empty-space click, click mode per display, always-hidden apps and what happens to new ones, five recordable shortcuts (show/hide items, icon bar, list apps, settings, quit; all off by default except the icon bar: click the shortcut, press a combo with ⌃, ⌥ or ⌘; Esc cancels, Delete or Off clears), app icons vs. real menu bar icons, icon size and names in the icon bar, and permission status.
+Settings (sections: General, Click, Shortcuts, Icon Bar, Permissions, Always Hidden, About): Open at Login, auto-rehide (after a delay or when the pointer leaves the bar), hover / empty-space click, click mode per display, always-hidden apps and what happens to new ones, five recordable shortcuts (show/hide items, icon bar, list apps, settings, quit; all off by default except the icon bar: click the shortcut, press a combo with ⌃, ⌥ or ⌘; Esc cancels, Delete or Off clears), app icons vs. real menu bar icons, icon size and names in the icon bar, and permission status.
 
 ## How it works
 
@@ -100,7 +103,7 @@ macOS 27's `MenuBarAgent` has a private "assessment mode" allow-list (`MenuBarCl
 process holds it, the bar shows only the allowed apps plus system items. SmartHiddenBar allows
 itself, the system items, and every app whose item sits to the right of its icon; apps left of the icon are denied. Hiding is
 therefore **per app, not per item**. Nothing is moved or modified: quitting SmartHiddenBar
-(or "Show items") releases the allow-list and the full bar comes back. Item lists and menus are read, and
+(or "Show Items") releases the allow-list and the full bar comes back. Item lists and menus are read, and
 menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring copies the real menu, closes it, and replays your pick on the real one.
 
 ## Limitations

@@ -41,6 +41,7 @@ extension Lister {
     // ponytail: fixed 1 s settle; items still parked then are allowed (fail open) until the next 5 s poll re-denies them.
     @objc func reapply() {
         broken = false
+        updateIcon()  // UI state only: the warning triangle goes with `broken`
         guard hidden || !alwaysHidden.isEmpty else { return }
         log("hide: re-applying after screen change / wake")
         stopHiding()
@@ -87,6 +88,7 @@ extension Lister {
     }
 
     @objc func refreshHide() {
+        if AXIsProcessTrusted() != iconTrusted { updateIcon() }  // UI state only: the warning icon follows the Accessibility grant
         guard AXIsProcessTrusted() else { return }
         DispatchQueue.global(qos: .userInitiated).async {
             let all = extras(), me = ownFrame()
@@ -136,7 +138,6 @@ extension Lister {
             osParked[pid] = .distantPast
             log("hide: \(e.name) kept off the bar by macOS (System Settings › Menu Bar › Allow in the Menu Bar), not by us")
         }
-        if left.isEmpty, denied.isEmpty, !UserDefaults.standard.bool(forKey: "firstRunHintShown") { firstRunHint() }
         let newly = left.subtracting(denied).subtracting(right), back = denied.intersection(right)
         if !newly.isEmpty || !back.isEmpty { log("hide: me \(Int(me.midX)) denied +\(newly.sorted()) -\(back.sorted())") }
         denied = denied.union(left).subtracting(right)
