@@ -136,7 +136,6 @@ extension Lister {
             osParked[pid] = .distantPast
             log("hide: \(e.name) kept off the bar by macOS (System Settings › Menu Bar › Allow in the Menu Bar), not by us")
         }
-        if left.isEmpty, denied.isEmpty, !UserDefaults.standard.bool(forKey: "firstRunHintShown") { firstRunHint() }
         let newly = left.subtracting(denied).subtracting(right), back = denied.intersection(right)
         if !newly.isEmpty || !back.isEmpty { log("hide: me \(Int(me.midX)) denied +\(newly.sorted()) -\(back.sorted())") }
         denied = denied.union(left).subtracting(right)

@@ -60,7 +60,12 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ n: Notification) {
         UserDefaults.standard.register(defaults: ["hidden": true, "iconBarSize": 24.0, "NSInitialToolTipDelay": 200])  // ms
         checkLocation()
-        AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        if UserDefaults.standard.bool(forKey: "didShowWelcome") {
+            AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        } else {  // the welcome window explains the Accessibility prompt and asks for it
+            UserDefaults.standard.set(true, forKey: "didShowWelcome")
+            WelcomeWindow.show()
+        }
         installMainMenu()
         status.autosaveName = "SmartHiddenBar"
         menu.delegate = self
@@ -309,17 +314,6 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             return noErr
         }, 1, &spec, nil, nil)
-    }
-
-    /// Once ever: nothing sits left of our icon yet, so explain how to use it.
-    func firstRunHint() {
-        UserDefaults.standard.set(true, forKey: "firstRunHintShown")
-        let a = NSAlert()
-        a.messageText = "Move the SmartHiddenBar icon"
-        a.informativeText = "⌘-drag the SmartHiddenBar icon to the right; everything left of it hides. "
-            + "\(Shortcut.stored("barShortcut").map { "\($0.label) (or ⌥-click)" } ?? "⌥-click") shows hidden items."
-        NSApp.activate()
-        a.runModal()
     }
 
     /// Left = the display's click mode (Settings → Click); right / ⌃-left = menu; ⌥-left = icon bar.

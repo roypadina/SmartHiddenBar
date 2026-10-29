@@ -1,4 +1,3 @@
-import ServiceManagement
 import SwiftUI
 
 // MARK: Settings (defaults domain com.roypadina.SmartHiddenBar)
@@ -32,8 +31,6 @@ struct SettingsView: View {
     @AppStorage("hoverReveal") var hoverReveal = false
     @AppStorage("clickEmptyBar") var clickEmptyBar = false
     @AppStorage("newApps") var newApps = "show"
-    @State var login = SMAppService.mainApp.status == .enabled
-    @State var loginStatus = SMAppService.mainApp.status
     @State var axOK = AXIsProcessTrusted()
     @State var screenOK = CGPreflightScreenCaptureAccess()
     @State var clickModes = UserDefaults.standard.dictionary(forKey: "clickModes") as? [String: String] ?? [:]
@@ -44,13 +41,7 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Launch at login", isOn: $login).onChange(of: login) { _, on in
-                    guard on != (SMAppService.mainApp.status == .enabled) else { return }
-                    do { try on ? SMAppService.mainApp.register() : SMAppService.mainApp.unregister() }
-                    catch { log("login item: \(error)") }
-                    loginStatus = SMAppService.mainApp.status
-                    login = loginStatus == .enabled
-                }
+                LaunchAtLoginToggle()
                 Picker("Auto-rehide after", selection: $rehide) {
                     Text("Never").tag(0)
                     ForEach([5, 10, 30, 60], id: \.self) { Text("\($0) s").tag($0) }
@@ -59,14 +50,7 @@ struct SettingsView: View {
                 Toggle("Show items when hovering empty menu bar space", isOn: $hoverReveal)
                 Toggle("Click empty menu bar space to show / hide", isOn: $clickEmptyBar)
                 ForEach(shortcutActions, id: \.key) { ShortcutRow(key: $0.key, label: "\($0.label) shortcut") }
-            } header: { Text("General") } footer: {
-                if loginStatus == .requiresApproval {
-                    HStack {
-                        Text("Launch at login needs your approval in Login Items.").foregroundStyle(.secondary)
-                        Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }
-                    }
-                }
-            }
+            } header: { Text("General") }
             Section {
                 ForEach(NSScreen.screens, id: \.localizedName) { screen in
                     Picker(screen.localizedName, selection: Binding(
@@ -141,6 +125,9 @@ struct SettingsView: View {
                 }
                 HStack {
                     Button("About SmartHiddenBar…") { AboutWindow.show() }
+                    Button("Welcome Guide…") { WelcomeWindow.show() }
+                }
+                HStack {
                     Button("Support on Ko-fi ☕") { NSWorkspace.shared.open(kofiURL) }.buttonStyle(.borderedProminent)
                     Button("Reveal log") { NSWorkspace.shared.activateFileViewerSelecting([logURL]) }
                 }
@@ -154,8 +141,6 @@ struct SettingsView: View {
             apps = menuBarApps()
             always = lister.alwaysHidden
             screenOK = CGPreflightScreenCaptureAccess()
-            loginStatus = SMAppService.mainApp.status
-            login = loginStatus == .enabled
         }
         .onReceive(NotificationCenter.default.publisher(for: inventoryChanged)) { _ in apps = menuBarApps() }
         // A recording left open must not keep our shortcuts unregistered.
