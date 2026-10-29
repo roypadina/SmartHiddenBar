@@ -29,7 +29,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var last: [Extra] = []  // latest background inventory (refreshHide); the menu and icon bar never walk AX on main
     var monitor: Any?
     var barNames: Bool { UserDefaults.standard.bool(forKey: "iconBarNames") }
-    /// Apps kept off the bar even while items are shown (Settings → Always hidden).
+    /// Apps kept off the bar even while items are shown (Settings → Always Hidden).
     var alwaysHidden: Set<String> { Set(UserDefaults.standard.stringArray(forKey: "alwaysHidden") ?? []) }
     var hidden: Bool {
         get { UserDefaults.standard.bool(forKey: "hidden") }
@@ -136,10 +136,12 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard ls != me else { return }
         log("launch: running \(me), LaunchServices resolves \(ls ?? "nothing")")
         let a = NSAlert()
-        a.messageText = "Move SmartHiddenBar to /Applications and open it from there."
+        a.messageText = "SmartHiddenBar must run from Applications"
+        a.informativeText = "macOS lets SmartHiddenBar hide menu bar items only when it runs from the Applications folder. Move it there, then open it again."
+        a.addButton(withTitle: "Show in Finder")
         a.addButton(withTitle: "Quit")
         NSApp.activate()
-        a.runModal()
+        if a.runModal() == .alertFirstButtonReturn { NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL]) }
         exit(0)
     }
 
@@ -358,7 +360,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         m.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.height + 4), in: view)
     }
 
-    /// Right-click menu: Show/Hide · Apps ▸ · Settings… · Quit, each showing its recorded shortcut.
+    /// Right-click menu: Show/Hide Items · Menu Bar Apps ▸ · Settings… · Quit, each showing its recorded shortcut.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         func row(_ title: String, _ action: Selector, _ shortcut: String, fallback: String = "") -> NSMenuItem {
@@ -368,9 +370,9 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return item
         }
         if !AXIsProcessTrusted() { menu.addItem(row("Grant Accessibility…", #selector(grantAccessibility), "")) }
-        if !disabled { menu.addItem(row(hidden ? "Show items" : "Hide items", #selector(toggleHidden), "toggleShortcut")) }
+        if !disabled { menu.addItem(row(hidden ? "Show Items" : "Hide Items", #selector(toggleHidden), "toggleShortcut")) }
         menu.addItem(row(disabled ? "Enable SmartHiddenBar" : "Disable SmartHiddenBar", #selector(toggleDisabled), ""))
-        let apps = row("Apps", #selector(noop), "appsShortcut")
+        let apps = row("Menu Bar Apps", #selector(noop), "appsShortcut")
         apps.submenu = appsMenu()
         menu.addItem(apps)
         menu.addItem(.separator())
@@ -378,8 +380,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(row("About SmartHiddenBar", #selector(showAbout), ""))
         menu.addItem(row("Support on Ko-fi ☕", #selector(openKofi), ""))
-        menu.addItem(.separator())
-        let quit = row("Quit", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q")
+        let quit = row("Quit SmartHiddenBar", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q")
         quit.target = NSApp  // `self` doesn't implement terminate:, so with target = self the item auto-disables
         menu.addItem(quit)
     }

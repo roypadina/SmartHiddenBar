@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- A Welcome window on first launch (and once after this update) explains why SmartHiddenBar exists, how to hide and reach items, why it needs Accessibility, and asks for it. Open it again from Settings > About > Welcome Guide…
+- Opening SmartHiddenBar again from Finder or Raycast now shows Settings, so you can get in even when macOS has dropped its icon from the menu bar.
+- While Settings, About or Welcome is open, SmartHiddenBar shows in the Dock and Cmd-Tab with a menu bar: About, Settings… (⌘,), Close (⌘W) and Quit (⌘Q).
+- The menu bar icon becomes a warning triangle when Accessibility isn't granted or hiding failed, with a tooltip that says what to do. Clicking it without Accessibility opens the menu with Grant Accessibility… at the top.
+- The menu bar icon has a tooltip.
+- Settings has a Shortcuts section that says Esc cancels and Delete turns a shortcut off, and a Permissions section that says Granted or Not granted and why Accessibility is needed. Permissions moves to the top while Accessibility is missing.
+
+### Changed
+- The first-run alert and the Accessibility prompt at launch are replaced by the Welcome window.
+- Settings sections are reordered (General, Click, Shortcuts, Icon Bar, Permissions, Always Hidden, About), and the icon size label no longer shows the value.
+- Menu titles: Show Items, Hide Items, Menu Bar Apps, Quit SmartHiddenBar; the Settings section Hidden items is now Icon Bar.
+- The "run from Applications" alert says why and offers Show in Finder.
+- Launch at login is now Open at Login, with a button when macOS needs your approval.
+- VoiceOver no longer reads the decorative app icons.
+
 ## [1.3.4] - 2026-10-29
 
 ### Fixed
