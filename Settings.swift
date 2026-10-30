@@ -31,6 +31,7 @@ struct SettingsView: View {
     @AppStorage("hoverReveal") var hoverReveal = false
     @AppStorage("clickEmptyBar") var clickEmptyBar = false
     @AppStorage("newApps") var newApps = "show"
+    @AppStorage("splitApps") var splitApps = "show"
     @State var axOK = AXIsProcessTrusted()
     @State var screenOK = CGPreflightScreenCaptureAccess()
     @State var clickModes = UserDefaults.standard.dictionary(forKey: "clickModes") as? [String: String] ?? [:]
@@ -73,7 +74,14 @@ struct SettingsView: View {
                 }
                 Toggle("Show items when hovering empty menu bar space", isOn: $hoverReveal)
                 Toggle("Click empty menu bar space to show / hide", isOn: $clickEmptyBar)
-            } header: { Text("General") }
+                Picker("Apps on both sides of the icon", selection: $splitApps) {
+                    Text("Show").tag("show")
+                    Text("Hide").tag("hide")
+                }.onChange(of: splitApps) { if lister.hidden { lister.hideNow() } }
+            } header: { Text("General") } footer: {
+                Text("macOS hides whole apps, so an app with icons on both sides of the SmartHiddenBar icon shows or hides all of them together.")
+                    .foregroundStyle(.secondary)
+            }
             Section {
                 ForEach(NSScreen.screens, id: \.localizedName) { screen in
                     Picker(screen.localizedName, selection: Binding(

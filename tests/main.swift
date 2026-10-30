@@ -49,4 +49,11 @@ precondition(!menuBarCanShow(running: nested, resolved: support), "LaunchService
 precondition(!menuBarCanShow(running: nested, resolved: nil), "id unknown to LaunchServices")
 precondition(!menuBarCanShow(running: u("/Applications-old/X.app"), resolved: u("/Applications-old/X.app")), "prefix, not a folder")
 
+// Settings › "Apps on both sides of the icon": the allow-list is per bundle, so an app with items left and right of us
+// (iStat Menus) is shown whole (default) or hidden whole.
+let seenRight: Set = ["com.bjango.istatmenus.status", "HamedElfayome.Claude-Usage"]
+let seenLeft: Set = ["com.bjango.istatmenus.status", "ru.keepcoder.Telegram"]
+precondition(rightOfUs(seenRight, seenLeft, splitHides: false) == seenRight, "split app shown: default, as before")
+precondition(rightOfUs(seenRight, seenLeft, splitHides: true) == ["HamedElfayome.Claude-Usage"], "split app hidden")
+
 print("selfcheck: ok")
