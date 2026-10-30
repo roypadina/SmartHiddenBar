@@ -56,6 +56,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var allowed: [String] = []  // allow-list behind `assertion`
     var denied = Set<String>()  // bundles seen on the bar left of us; parked bundles NOT in here are allowed (fail open)
     var osParked: [pid_t: Date] = [:]  // parked although allowed, since when; .distantPast = logged as macOS-hidden (applyHide)
+    var lsChecked = Set<pid_t>()  // allowed processes checked against MenuBarAgent's /Applications rule (applyHide)
     var generation = 0  // bumped to make an in-flight activation lose
 
     func applicationDidFinishLaunching(_ n: Notification) {

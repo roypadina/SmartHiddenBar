@@ -87,11 +87,19 @@ extension Lister {
         refreshHide()
     }
 
-    @objc func refreshHide() {
+    @objc func refreshHide() { readAndHide(tries: 3) }
+
+    /// ponytail: 3 reads 0.3 s apart; still moving after that (a width-changing item right of us) = keep the current list.
+    func readAndHide(tries: Int) {
         if AXIsProcessTrusted() != iconTrusted { updateIcon() }  // UI state only: the warning icon follows the Accessibility grant
         guard AXIsProcessTrusted() else { return }
         DispatchQueue.global(qos: .userInitiated).async {
-            let all = extras(), me = ownFrame()
+            guard let (all, me) = settledRead(extras, ownFrame) else {
+                return DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    guard tries > 1 else { return log("hide: own item kept moving during the read, list unchanged") }
+                    self.readAndHide(tries: tries - 1)
+                }
+            }
             DispatchQueue.main.async {
                 let changed = Set(all.compactMap(\.app.bundleIdentifier)) != Set(self.last.compactMap(\.app.bundleIdentifier))
                 self.last = all
@@ -146,6 +154,16 @@ extension Lister {
         let system = ["com.apple.MenuBarAgent", "com.apple.controlcenter", "com.apple.systemuiserver"]
         let visible = hidden ? right.union(parked.subtracting(denied)) : right.union(left).union(parked)
         let allow = Set([own] + system).union(visible.subtracting(always)).sorted()
+        // Allowed but MenuBarAgent can't match it (outside /Applications, or LaunchServices picks another copy): it stays
+        // off the bar while we hide, wherever it sits, and its leaving shifts our icon. Say so once per process.
+        for e in all {
+            let id = e.app.bundleIdentifier ?? "", pid = e.app.processIdentifier
+            guard allow.contains(id), !id.hasPrefix("com.apple."), lsChecked.insert(pid).inserted else { continue }
+            let ls = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+            guard !menuBarCanShow(running: e.app.bundleURL, resolved: ls) else { continue }
+            log("hide: \(e.app.localizedName ?? id) can't stay on the bar while hiding: macOS shows only apps run from /Applications "
+                + "(runs from \(e.app.bundleURL?.path ?? "?"), LaunchServices: \(ls?.path ?? "none"))")
+        }
         guard allow != allowed || assertion == nil else { return }
         generation += 1
         let g = generation

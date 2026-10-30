@@ -118,6 +118,7 @@ menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring
 - Only items **left of SmartHiddenBar's icon** are hidden (plus your always-hidden apps).
 - macOS blocks Notification Center while hiding is active, so a click on the clock shows the hidden items until it closes.
 - An app switched off in System Settings → Menu Bar → **Allow in the Menu Bar** never shows on the bar, with or without SmartHiddenBar; turn it on there.
+- While hiding, macOS keeps an app on the bar only if it runs from inside `/Applications`; an app running from anywhere else (e.g. `~/Library/Application Support`) is hidden even right of the icon. The log names it: `<app> can't stay on the bar while hiding`.
 - Mirrored menus are a snapshot: titles that change while the menu is open may be stale.
 
 ## Privacy
