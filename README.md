@@ -21,6 +21,10 @@ shows them again in a tidy icon bar on demand, and lets you use a hidden item's 
 
 <br>
 
+<img src="docs/demo.gif" alt="SmartHiddenBar in action: one click hides every menu-bar icon left of its icon, Option-click opens an icon bar of the hidden apps, and picking one opens its menu without unhiding anything." width="720">
+
+<br>
+
 <img src="docs/screenshots/icon-bar.png" alt="The SmartHiddenBar icon bar: a row of the hidden apps' icons under the menu bar, below the SmartHiddenBar icon." width="600">
 
 <sub><i>The icon bar: everything currently off the menu bar, one click from its menu.</i></sub>
@@ -41,7 +45,7 @@ brew install --cask roypadina/tap/smarthiddenbar
 - **Icon bar.** Everything currently off the bar, as a row of icons under SmartHiddenBar's icon: ⌥-click, the click mode, or a keyboard shortcut (⌃⌥B by default, recordable in Settings). Hover an icon for its name; adjustable icon size.
 - **Hover or click empty menu bar space** to show / hide (both optional).
 - **Right-click menu.** Show Items / Hide Items, Disable/Enable SmartHiddenBar (disabled = nothing hidden, always-hidden included, as if quit), a **Menu Bar Apps** submenu listing every third-party menu bar app (icon + name), Settings…, About, Support and Quit SmartHiddenBar. Most have their own recordable shortcut.
-- **Menu mirroring.** Pick a hidden item and use its menu from under SmartHiddenBar's icon, without unhiding it.
+- **Menu mirroring.** Pick a hidden item and use its menu from under the icon you clicked, without unhiding it.
 - **Real menu bar icons (optional).** With Screen Recording, the icon bar shows each item's actual menu-bar icon instead of the app icon.
 - **Auto-rehide** after 5 / 10 / 30 / 60 s or as soon as the pointer leaves the menu bar, and **Open at Login**.
 - **Welcome window.** First launch (and once after updating to 1.4.0) explains what SmartHiddenBar does, how to hide and reach items and why it needs Accessibility, and asks for it. Reopen it from Settings → About → Welcome Guide…
@@ -91,7 +95,7 @@ On first run, follow the Welcome window, then ⌘-drag the SmartHiddenBar icon t
 | Show/hide shortcut (off by default) | Hide / show everything left of the icon |
 | ⌥-click, or the icon-bar shortcut (⌃⌥B default) | Icon bar with every item currently off the bar |
 | Hover / click empty menu bar space (off by default) | Show items (hover: until the pointer leaves the bar) / show or hide |
-| Click (or right-click) an icon in the icon bar | That item's menu, under SmartHiddenBar's icon |
+| Click (or right-click) an icon in the icon bar | That item's menu, under the icon you clicked |
 | Hover an icon in the icon bar | Its app name |
 | Right-click (or ⌃-click) | Show Items / Hide Items · Disable/Enable SmartHiddenBar · Menu Bar Apps ▸ (every third-party menu bar app; pick one to use its menu) · Settings… · About · Support · Quit SmartHiddenBar |
 
