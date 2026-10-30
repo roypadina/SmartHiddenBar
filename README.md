@@ -99,21 +99,21 @@ On first run, follow the Welcome window, then ⌘-drag the SmartHiddenBar icon t
 | Hover an icon in the icon bar | Its app name |
 | Right-click (or ⌃-click) | Show Items / Hide Items · Disable/Enable SmartHiddenBar · Menu Bar Apps ▸ (every third-party menu bar app; pick one to use its menu) · Settings… · About · Support · Quit SmartHiddenBar |
 
-Settings (sections: General, Click, Shortcuts, Icon Bar, Permissions, Always Hidden, About): Open at Login, auto-rehide (after a delay or when the pointer leaves the bar), hover / empty-space click, click mode per display, always-hidden apps and what happens to new ones, five recordable shortcuts (show/hide items, icon bar, list apps, settings, quit; all off by default except the icon bar: click the shortcut, press a combo with ⌃, ⌥ or ⌘; Esc cancels, Delete or Off clears), app icons vs. real menu bar icons, icon size and names in the icon bar, and permission status.
+Settings (sections: General, Click, Shortcuts, Icon Bar, Permissions, Always Hidden, About): Open at Login, auto-rehide (after a delay or when the pointer leaves the bar), hover / empty-space click, what happens to apps with items on both sides of the icon, click mode per display, always-hidden apps and what happens to new ones, five recordable shortcuts (show/hide items, icon bar, list apps, settings, quit; all off by default except the icon bar: click the shortcut, press a combo with ⌃, ⌥ or ⌘; Esc cancels, Delete or Off clears), app icons vs. real menu bar icons, icon size and names in the icon bar, and permission status.
 
 ## How it works
 
 macOS 27's `MenuBarAgent` has a private "assessment mode" allow-list (`MenuBarClientCore`): while a
 process holds it, the bar shows only the allowed apps plus system items. SmartHiddenBar allows
 itself, the system items, and every app whose item sits to the right of its icon; apps left of the icon are denied. Hiding is
-therefore **per app, not per item**. Nothing is moved or modified: quitting SmartHiddenBar
+therefore **per app, not per item** (the API takes app ids only; there is no per-item call). Nothing is moved or modified: quitting SmartHiddenBar
 (or "Show Items") releases the allow-list and the full bar comes back. Item lists and menus are read, and
 menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring copies the real menu, closes it, and replays your pick on the real one.
 
 ## Limitations
 
 - **macOS 27 only.** It relies on a **private API** that Apple can change or remove in any update; if it is missing, SmartHiddenBar tells you and leaves everything visible.
-- Hiding is **per app**: an app with several items hides or shows them together.
+- Hiding is **per app**: macOS only hides whole apps, so an app with several items (iStat Menus, for example) hides or shows them together. If its items sit on both sides of the SmartHiddenBar icon, Settings → General → **Apps on both sides of the icon** decides: Show (default) keeps all of them, Hide hides all of them. To split such an app, ⌘-drag all its items to one side of the icon.
 - **Apple's own items** (Control Center, Wi-Fi, clock, ...) can't be hidden.
 - Only items **left of SmartHiddenBar's icon** are hidden (plus your always-hidden apps).
 - macOS blocks Notification Center while hiding is active, so a click on the clock shows the hidden items until it closes.

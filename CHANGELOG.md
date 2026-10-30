@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-30
+
+### Added
+- Settings › General › **Apps on both sides of the icon**: Show or Hide. macOS hides whole apps, so an app with items left and right of the SmartHiddenBar icon (iStat Menus, for example) used to stay fully visible; choose Hide to hide all of its items instead. Show stays the default.
+
+### Changed
+- README and wiki explain why hiding is per app: macOS offers no per-item way to hide another app's icons.
+
 ## [1.4.1] - 2026-10-30
 
 ### Fixed

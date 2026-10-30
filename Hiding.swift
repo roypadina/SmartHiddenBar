@@ -131,6 +131,7 @@ extension Lister {
             else if fromRight(e.x + e.width / 2, e.y) < fromRight(me.midX, me.minY) { right.insert(b) }
             else { left.insert(b) }
         }
+        right = rightOfUs(right, left, splitHides: UserDefaults.standard.string(forKey: "splitApps") == "hide")
         // Parked for more than a poll although our list allows it = macOS itself keeps it off the bar: System Settings ›
         // Menu Bar › "Allow in the Menu Bar" is off for that app (MenuBarAgent persists it per app and parks the item at
         // creation, whatever any allow-list says). Nothing we activate or release places it — a release only flashes the

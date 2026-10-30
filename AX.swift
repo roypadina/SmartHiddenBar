@@ -88,6 +88,12 @@ func menuBarCanShow(running: URL?, resolved: URL?) -> Bool {
     return running.standardizedFileURL.path.hasPrefix("/Applications/")
 }
 
+/// Bundles kept on the bar while hiding. The allow-list is per bundle, so an app with items on both sides of our icon is
+/// shown whole, or hidden whole with Settings › "Apps on both sides of the icon" = Hide (`splitHides`).
+func rightOfUs(_ right: Set<String>, _ left: Set<String>, splitHides: Bool) -> Set<String> {
+    splitHides ? right.subtracting(left) : right
+}
+
 /// One walk plus our own frame, sampled every 20 ms from `settle` s before the walk to its end. Our item moving meanwhile =
 /// the bar re-laid out (an allow-list just dropped items right of us, or one changed width), so the walk mixes old and new
 /// x for apps that moved with us and left/right of us is wrong: nil = read again. Sampled, not just before/after: an item
