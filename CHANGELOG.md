@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-30
+
+### Fixed
+- Apps right of the icon could be hidden after a hide when other items left the bar or changed width (for example a menu bar app macOS won't show while hiding). SmartHiddenBar now decides left and right only once the bar has stood still, and keeps the current list while items keep resizing.
+
+### Added
+- The log names any app that macOS won't keep on the bar while hiding (it runs from outside /Applications, or macOS points to another copy), with both paths.
+
 ## [1.4.0] - 2026-10-30
 
 ### Added

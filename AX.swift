@@ -80,6 +80,46 @@ func fromRight(_ x: CGFloat, _ y: CGFloat) -> CGFloat {
     return (s?.frame.maxX ?? 0) - x
 }
 
+/// Whether MenuBarAgent can show this app while an allow-list is active. It matches an allowed bundle id only for a copy
+/// inside /Applications (nested helpers too) that LaunchServices also resolves the id to; anything else stays hidden while
+/// we hide, wherever it sits (probe matrix 2026-10-30; `~/Library/Application Support` copies never show).
+func menuBarCanShow(running: URL?, resolved: URL?) -> Bool {
+    guard let running, running.standardizedFileURL == resolved?.standardizedFileURL else { return false }
+    return running.standardizedFileURL.path.hasPrefix("/Applications/")
+}
+
+/// One walk plus our own frame, sampled every 20 ms from `settle` s before the walk to its end. Our item moving meanwhile =
+/// the bar re-laid out (an allow-list just dropped items right of us, or one changed width), so the walk mixes old and new
+/// x for apps that moved with us and left/right of us is wrong: nil = read again. Sampled, not just before/after: an item
+/// flipping width and back within one walk leaves both ends equal. The settle window: other apps' AX frames trail a
+/// re-layout (iStat Menus, Slack: more than one walk behind in the 2026-10-30 live repro), so the bar must have been still
+/// for a while before we read them, not just during the walk.
+// ponytail: 0.5 s covers the lag seen; an app trailing longer can still read on the old side for one poll.
+func settledRead<T>(_ walk: () -> T, _ own: @escaping () -> CGRect?, settle: TimeInterval = 0.5) -> (T, CGRect?)? {
+    let first = own(), lock = NSLock(), sampler = DispatchGroup()
+    var done = false, moved = false
+    DispatchQueue.global(qos: .userInitiated).async(group: sampler) {
+        while !lock.withLock({ done }) {
+            if !sameSpot(own(), first) { lock.withLock { moved = true } }
+            usleep(20_000)
+        }
+    }
+    usleep(useconds_t(settle * 1_000_000))
+    let all = walk()
+    lock.withLock { done = true }
+    sampler.wait()
+    let me = own()
+    return moved || !sameSpot(me, first) ? nil : (all, me)
+}
+
+func sameSpot(_ a: CGRect?, _ b: CGRect?) -> Bool {
+    switch (a, b) {
+    case (nil, nil): true
+    case let (a?, b?): abs(a.midX - b.midX) <= 1
+    default: false
+    }
+}
+
 /// Our own status item's AX frame. Never call on the main thread: the main thread is what answers it.
 func ownFrame() -> CGRect? {
     guard let bar = ax(AXUIElementCreateApplication(getpid()), "AXExtrasMenuBar"), let raw = kids(bar as! AXUIElement).first else { return nil }
