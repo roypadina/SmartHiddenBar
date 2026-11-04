@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-04
+
+### Added
+- Updates from inside the app, with your permission. SmartHiddenBar asks once, on its second launch, whether to check for updates automatically; with your yes it checks once a day (downloading the release feed from GitHub, which sends nothing about you) and asks before installing a new version. Check by hand with **Check for Updates…** in the right-click menu (it reads **Install Update X.Y.Z…** once one is found), the About window or Settings › About. Updates are signed, keep the Accessibility grant, and need no `xattr` step.
+
 ## [1.5.0] - 2026-10-30
 
 ### Added
