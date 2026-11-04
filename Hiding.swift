@@ -101,7 +101,13 @@ extension Lister {
                 }
             }
             DispatchQueue.main.async {
-                let changed = Set(all.compactMap(\.app.bundleIdentifier)) != Set(self.last.compactMap(\.app.bundleIdentifier))
+                let before = Set(self.last.compactMap(\.app.bundleIdentifier)), now = Set(all.compactMap(\.app.bundleIdentifier))
+                let changed = now != before
+                if changed, !self.last.isEmpty {  // names apps that appear/leave, so "icon never came back" reports are diagnosable
+                    let added = all.filter { !before.contains($0.app.bundleIdentifier ?? "") }
+                        .map { "\($0.app.bundleIdentifier ?? "?") \(onBar($0.y) ? "x=\(Int($0.x))" : "parked")" }
+                    log("apps: +\(added) -\(before.subtracting(now).sorted())")
+                }
                 self.last = all
                 self.lastMe = me
                 self.noteNewApps(all)
@@ -111,8 +117,8 @@ extension Lister {
         }
     }
 
-    /// Hidden: allow = us + system owners + every bundle with an item right of our midX + parked bundles never seen left of us.
-    /// Shown: allow = every bundle on the bar. Either way minus the always-hidden list (shown + empty list = no restriction).
+    /// Hidden: allow = us + system owners + every bundle with an item right of our midX + parked or known bundles never seen
+    /// left of us (`visibleBundles`). Shown: allow = every bundle on the bar + known ones. Either way minus the always-hidden list (shown + empty list = no restriction).
     /// Several displays: positions are compared as distance from their own display's right edge (`fromRight`).
     func applyHide(_ all: [Extra], _ me: CGRect?) {
         let always = alwaysHidden
@@ -153,7 +159,8 @@ extension Lister {
         let own = Bundle.main.bundleIdentifier ?? "com.roypadina.SmartHiddenBar"
         // System owners too: phase 1 never hides macOS's own items (Now Playing may be bundle-owned, not a system id).
         let system = ["com.apple.MenuBarAgent", "com.apple.controlcenter", "com.apple.systemuiserver"]
-        let visible = hidden ? right.union(parked.subtracting(denied)) : right.union(left).union(parked)
+        let known = Set(UserDefaults.standard.stringArray(forKey: "knownApps") ?? [])
+        let visible = visibleBundles(hidden: hidden, right: right, left: left, parked: parked, known: known, denied: denied)
         let allow = Set([own] + system).union(visible.subtracting(always)).sorted()
         // Allowed but MenuBarAgent can't match it (outside /Applications, or LaunchServices picks another copy): it stays
         // off the bar while we hide, wherever it sits, and its leaving shifts our icon. Say so once per process.

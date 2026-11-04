@@ -56,4 +56,13 @@ let seenLeft: Set = ["com.bjango.istatmenus.status", "ru.keepcoder.Telegram"]
 precondition(rightOfUs(seenRight, seenLeft, splitHides: false) == seenRight, "split app shown: default, as before")
 precondition(rightOfUs(seenRight, seenLeft, splitHides: true) == ["HamedElfayome.Claude-Usage"], "split app hidden")
 
+// Relaunch repro 2026-11-04: Agents Monitor quit and relaunched while hiding never showed up in the walk (an item created
+// while its app is off the list is not placed, so AX never lists it): known apps are allowed though absent from the walk.
+let known: Set = ["com.roy.agentsmonitor", "com.padina.vaultbar"]
+precondition(visibleBundles(hidden: true, right: ["com.roy.meetalert"], left: [], parked: [], known: known,
+                            denied: ["com.padina.vaultbar"]) == ["com.roy.meetalert", "com.roy.agentsmonitor"],
+             "hidden: relaunched known app allowed ahead, one seen left of us still denied")
+precondition(visibleBundles(hidden: false, right: [], left: [], parked: [], known: known, denied: ["com.padina.vaultbar"])
+             == known, "shown: every known app, denied ones too")
+
 print("selfcheck: ok")
