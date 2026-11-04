@@ -69,6 +69,8 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             WelcomeWindow.show()
         }
         installMainMenu()
+        // Sparkle asks on the second launch before any check; never for a bare binary without a bundle.
+        if Bundle.main.bundleIdentifier != nil { MainActor.assumeIsolated { _ = Updates.controller } }
         status.autosaveName = "SmartHiddenBar"
         menu.delegate = self
         status.menu = nil  // every click reaches `clicked`; the menu is popped up by hand
@@ -105,6 +107,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             m.addItem(withTitle: title, action: action, keyEquivalent: key).target = target
         }
         add(app, "About SmartHiddenBar", #selector(showAbout), "", target: self)
+        add(app, "Check for Updates…", #selector(checkForUpdates), "", target: self)
         add(app, "Settings…", #selector(openSettings), ",", target: self)
         app.addItem(.separator())
         add(app, "Quit SmartHiddenBar", #selector(NSApplication.terminate(_:)), "q")
@@ -377,6 +380,8 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         apps.submenu = appsMenu()
         menu.addItem(apps)
         menu.addItem(.separator())
+        menu.addItem(row(MainActor.assumeIsolated { Updates.menuTitle }, #selector(checkForUpdates), ""))
+        menu.addItem(.separator())
         menu.addItem(row("Settings…", #selector(openSettings), "settingsShortcut", fallback: ","))
         menu.addItem(.separator())
         menu.addItem(row("About SmartHiddenBar", #selector(showAbout), ""))
@@ -389,6 +394,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func noop() {}
 
     @MainActor @objc func showAbout() { AboutWindow.show() }
+    @MainActor @objc func checkForUpdates() { Updates.check() }
 
     @objc func openKofi() { NSWorkspace.shared.open(kofiURL) }
 

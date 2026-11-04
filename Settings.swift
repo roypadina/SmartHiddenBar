@@ -154,6 +154,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading) {
                         Text("SmartHiddenBar").font(.headline)
                         Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")").foregroundStyle(.secondary)
+                        Button("Check for Updates…") { Updates.check() }
                     }
                 }
                 HStack {
@@ -231,6 +232,7 @@ struct AboutView: View {
                 Text("SmartHiddenBar").font(.title.bold())
                 Text("Version \(info["CFBundleShortVersionString"] as? String ?? "") (\(info["CFBundleVersion"] as? String ?? ""))")
                     .font(.callout).foregroundStyle(.secondary)
+                Button("Check for Updates…") { Updates.check() }.padding(.top, 4)
             }
             VStack(spacing: 8) {
                 Text("Made by Roy Padina").font(.headline)

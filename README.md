@@ -123,8 +123,17 @@ menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring
 
 ## Privacy
 
-No network access, no analytics. It writes a small log to `~/Library/Logs/SmartHiddenBar.log`
+No analytics, and no network access except the update check: SmartHiddenBar asks once (on its second launch)
+whether to check for updates automatically; with your yes it downloads the release feed from GitHub once a day,
+sending nothing about you. It writes a small log to `~/Library/Logs/SmartHiddenBar.log`
 (hide decisions and errors, no personal data) and preferences to the defaults domain `com.roypadina.SmartHiddenBar`.
+
+## Updating
+
+SmartHiddenBar asks once whether to check for updates automatically; with your yes it checks once a day and asks
+before installing a new version. **Check for Updates…** (right-click menu, About window or Settings → About) checks
+now, and reads **Install Update X.Y.Z…** once one is found. An in-app update needs no `xattr` step and keeps the
+Accessibility grant. Homebrew users can also run `brew upgrade --cask smarthiddenbar`.
 
 ## Build from source
 
