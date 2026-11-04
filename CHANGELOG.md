@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.6.1] - 2026-11-04
 
 ### Fixed
-- A menu bar app that was quit and opened again while SmartHiddenBar was hiding stayed hidden until SmartHiddenBar itself restarted, even right of the icon or while items were shown. macOS never lists an icon created while its app is off the allow-list, so SmartHiddenBar never saw it to allow it. Menu bar apps it already knows are now allowed ahead of time, running or not, unless they sit left of the icon.
+- A menu bar app that was quit and opened again while SmartHiddenBar was hiding stayed hidden until SmartHiddenBar itself restarted, even right of the icon or while items were shown. macOS never lists an icon created while its app is off the allow-list, so SmartHiddenBar never saw it to allow it. Menu bar apps it already knows are now allowed ahead of time, running or not, unless they sit left of the icon. An app that sat left of the icon before SmartHiddenBar last started can show for a few seconds after it opens, until the next check hides it.
 
 ### Added
 - The log names apps whose menu bar items appear or leave, with their position, so a missing icon can be traced.
