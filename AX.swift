@@ -88,6 +88,15 @@ func menuBarCanShow(running: URL?, resolved: URL?) -> Bool {
     return running.standardizedFileURL.path.hasPrefix("/Applications/")
 }
 
+/// Bundles the allow-list keeps on the bar, before the always-hidden list. An item created while its app is off the list is
+/// never placed and never shows up in AX (relaunch repro 2026-11-04), so we would never see it to allow it: known menu bar
+/// apps (`knownApps`) are allowed ahead, running or not, unless seen left of us.
+// shortcut: knownApps skips com.apple.* bundles, so a relaunched Apple menu extra still needs our restart; add them if reported.
+func visibleBundles(hidden: Bool, right: Set<String>, left: Set<String>, parked: Set<String>, known: Set<String>,
+                    denied: Set<String>) -> Set<String> {
+    hidden ? right.union(parked.union(known).subtracting(denied)) : right.union(left).union(parked).union(known)
+}
+
 /// Bundles kept on the bar while hiding. The allow-list is per bundle, so an app with items on both sides of our icon is
 /// shown whole, or hidden whole with Settings › "Apps on both sides of the icon" = Hide (`splitHides`).
 func rightOfUs(_ right: Set<String>, _ left: Set<String>, splitHides: Bool) -> Set<String> {
