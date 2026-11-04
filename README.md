@@ -105,7 +105,7 @@ Settings (sections: General, Click, Shortcuts, Icon Bar, Permissions, Always Hid
 
 macOS 27's `MenuBarAgent` has a private "assessment mode" allow-list (`MenuBarClientCore`): while a
 process holds it, the bar shows only the allowed apps plus system items. SmartHiddenBar allows
-itself, the system items, and every app whose item sits to the right of its icon; apps left of the icon are denied. Hiding is
+itself, the system items, every app whose item sits to the right of its icon, and apps it has seen before that never sat left of it (so a reopened app's icon comes back); apps left of the icon are denied. Hiding is
 therefore **per app, not per item** (the API takes app ids only; there is no per-item call). Nothing is moved or modified: quitting SmartHiddenBar
 (or "Show Items") releases the allow-list and the full bar comes back. Item lists and menus are read, and
 menu items pressed, through the Accessibility API (`AXExtrasMenuBar`). Mirroring copies the real menu, closes it, and replays your pick on the real one.
