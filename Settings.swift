@@ -192,6 +192,7 @@ final class AccessoryWindows: NSObject, NSWindowDelegate {
     static let shared = AccessoryWindows()
 
     func show(_ window: NSWindow) {
+        lister.supportPromptMakeWay()  // our window comes first: a Ko-fi card still open counts as a snooze
         window.delegate = self
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()

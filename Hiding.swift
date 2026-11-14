@@ -195,6 +195,7 @@ extension Lister {
             allowed = allow
             old?.perform(invalidateSel)
             log("hide: active \(allow.count) allowed, \(denied.count) denied")
+            tidyHidden()  // Ko-fi card: a tidy-up completes here
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.refreshHide() }  // re-read so `last` sees the newly parked items
         }
     }

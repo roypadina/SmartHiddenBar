@@ -179,6 +179,8 @@ Free, open-source Mac menu-bar apps and terminal tools, all on one site: **[apps
 
 If SmartHiddenBar tidies your menu bar, you can support its development — it's optional and always appreciated.
 
+Once in a while, SmartHiddenBar asks too. A small receipt card shows up about 10 seconds after you tidy the bar: you showed the hidden items, used one, and they were hidden again, by you or by auto-rehide. It only appears after more than 40 of those tidy-ups, and at most 3 times a year. "Ask me in 2 weeks" snoozes it, and "Nope, don't ask again" keeps it away until the next major version. If a SmartHiddenBar window, update prompt or the icon bar opens while the card is still open, it closes and counts as a snooze; one left unanswered for 5 minutes, or when you step away (2 minutes without input, sleep or screen lock), fades and counts as a snooze too. It never shows while a SmartHiddenBar window, update prompt, the icon bar or any app's menu is open, never takes keyboard focus, and its count stays on your Mac.
+
 [![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/roypadina)
 
 A ⭐ on the repo helps just as much.

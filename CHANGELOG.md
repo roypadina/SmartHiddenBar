@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-14
+
+### Added
+- Ko-fi support card: about 10 seconds after you tidy the bar — you showed the hidden items, used one (opened its menu from SmartHiddenBar or clicked it on the menu bar) and they were hidden again, by you or by auto-rehide — a small receipt card may ask for a tip. It waits until 7 days after you install or update to this version, and until more than 40 such tidy-ups. It asks at most 3 times a year, only when you used the Mac in the last 10 seconds, and never while the items are shown again, a SmartHiddenBar window, update prompt, the icon bar or any app's menu is open, a mouse button is held down, the screen is locked or the microphone is in use. "Ask me in 2 weeks" snoozes it. "Nope, don't ask again" keeps it quiet until the next major version, and for at least 90 days. A card still open when a SmartHiddenBar window, update prompt or the icon bar opens, or the Mac sleeps or locks, closes and counts as a snooze; one left unanswered for 5 minutes, or 2 minutes without input, fades and counts as a snooze too. The card never takes keyboard focus, and the same three choices head the right-click menu while it shows, for keyboard and VoiceOver users. Hold ⌥ in the right-click menu for "Show Support Prompt Now" to preview it. The tidy-up count (since this version) stays on your Mac, in the app's preferences; nothing is sent.
+
 ## [1.6.1] - 2026-11-04
 
 ### Fixed
