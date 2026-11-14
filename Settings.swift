@@ -195,7 +195,8 @@ final class AccessoryWindows: NSObject, NSWindowDelegate {
         lister.supportPromptMakeWay()  // our window comes first: a Ko-fi card still open counts as a snooze
         window.delegate = self
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        // Forceful: a user action, and on macOS 14+ the front app can refuse the activate() request (window opens behind).
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
 
