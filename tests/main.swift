@@ -1,7 +1,7 @@
 import AppKit
 
-// Self-check for the pure hide logic (no app, no Accessibility needed):
-//   swiftc -target arm64-apple-macos27.0 AX.swift tests/main.swift -o build/selfcheck && build/selfcheck
+// Self-check for the pure hide logic and the Ko-fi card's ask rules (no app, no Accessibility needed):
+//   swiftc -target arm64-apple-macos27.0 AX.swift SupportPromptState.swift tests/main.swift -o build/selfcheck && build/selfcheck
 
 /// Our item's frame as the bar currently lays it out; the walks below re-lay it out while they run, like MenuBarAgent.
 final class Bar: @unchecked Sendable {
@@ -64,5 +64,32 @@ precondition(visibleBundles(hidden: true, right: ["com.roy.meetalert"], left: []
              "hidden: relaunched known app allowed ahead, one seen left of us still denied")
 precondition(visibleBundles(hidden: false, right: [], left: [], parked: [], known: known, denied: ["com.padina.vaultbar"])
              == known, "shown: every known app, denied ones too")
+
+// Ko-fi support card: MeetAlert's ask rules, counted in tidy-ups (reveal → use → auto-hide).
+let day = SupportPromptState.day, install = Date(timeIntervalSince1970: 1_794_528_000)  // 2026-11-13
+func mayAsk(_ s: SupportPromptState, day d: Double, tidyUps: Int = 50, version: String = "1.7.0") -> Bool {
+    s.mayAsk(now: install.addingTimeInterval(d * day), installDate: install, tidyUps: tidyUps, appVersion: version)
+}
+var ask = SupportPromptState()
+precondition(!mayAsk(ask, day: 6.9), "first ask: not before 7 days")
+precondition(!mayAsk(ask, day: 60, tidyUps: 40) && !mayAsk(ask, day: 60, tidyUps: 0), "never at 40 tidy-ups or fewer")
+precondition(mayAsk(ask, day: 7, tidyUps: 41), "7 days and more than 40 tidy-ups")
+ask.record(.snooze, now: install.addingTimeInterval(10 * day), appVersion: "1.7.0")
+precondition(!mayAsk(ask, day: 23.9) && mayAsk(ask, day: 24), "snooze: 14 days")
+ask = SupportPromptState()
+ask.record(.support, now: install.addingTimeInterval(10 * day), appVersion: "1.7.0")
+precondition(!mayAsk(ask, day: 189) && mayAsk(ask, day: 190), "a tip: 180 days quiet")
+ask = SupportPromptState()
+ask.record(.never, now: install.addingTimeInterval(10 * day), appVersion: "1.7.0")
+precondition(!mayAsk(ask, day: 300, version: "1.9.0"), "never: a feature release must not undo it")
+precondition(!mayAsk(ask, day: 50, version: "2.0.0"), "never: a major release within 90 days must not undo it")
+precondition(mayAsk(ask, day: 100, version: "2.0.0"), "never: next major and 90 days")
+ask = SupportPromptState()
+for d in [10.0, 40, 70] { ask.recordShown(install.addingTimeInterval(d * day)) }
+precondition(!mayAsk(ask, day: 300) && mayAsk(ask, day: 376), "at most 3 asks per rolling 365 days")
+precondition((try? JSONDecoder().decode(SupportPromptState.self, from: Data("{}".utf8))) == SupportPromptState(), "empty state decodes")
+let partial = try! JSONDecoder().decode(SupportPromptState.self, from: Data(#"{"snoozedUntil":0,"futureKey":1}"#.utf8))
+precondition(partial.snoozedUntil == Date(timeIntervalSinceReferenceDate: 0) && partial.shownAt.isEmpty,
+             "old or partial state: known keys survive missing and unknown ones")
 
 print("selfcheck: ok")

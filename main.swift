@@ -58,10 +58,14 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var osParked: [pid_t: Date] = [:]  // parked although allowed, since when; .distantPast = logged as macOS-hidden (applyHide)
     var lsChecked = Set<pid_t>()  // allowed processes checked against MenuBarAgent's /Applications rule (applyHide)
     var generation = 0  // bumped to make an in-flight activation lose
+    var tidy = Tidy.idle  // the Ko-fi card's success moment, step by step (SupportPrompt.swift)
+    var supportPromptShowing = false  // mirrored in the status menu: the card never takes keyboard focus
+    var supportPromptTask: Task<Void, Never>?  // the pending try ~10 s after a tidy-up
 
     func applicationDidFinishLaunching(_ n: Notification) {
         UserDefaults.standard.register(defaults: ["hidden": true, "iconBarSize": 24.0, "NSInitialToolTipDelay": 200])  // ms
         checkLocation()
+        setUpSupportPrompt()
         if UserDefaults.standard.bool(forKey: "didShowWelcome") {
             AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
         } else {  // the welcome window explains the Accessibility prompt and asks for it
@@ -153,6 +157,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !disabled else { return }
         if broken { broken = false } else { hidden.toggle() }  // after a failure the click retries instead of flipping
         applyHidden()
+        tidyToggled()
     }
 
     /// Applies `hidden`: hide = activate the allow-list; show = release it and arm the auto-rehide timer.
@@ -198,6 +203,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let d = UserDefaults.standard
             if e.type == .leftMouseDown {
                 guard inMenuBar() else { return }
+                revealedBarClick()
                 if assertion != nil { clockClicked() }
                 guard d.bool(forKey: "clickEmptyBar") else { return }
                 whenOverEmptyBar { self.hideBar(); self.toggleHidden() }
@@ -288,6 +294,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func rehideNow() {
         guard !hidden else { return }
+        tidyRehiding()
         hidden = true
         applyHidden()
     }
@@ -367,6 +374,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Right-click menu: Show/Hide Items · Menu Bar Apps ▸ · Settings… · Quit, each showing its recorded shortcut.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+        if supportPromptShowing { addSupportAnswers(to: menu) }
         func row(_ title: String, _ action: Selector, _ shortcut: String, fallback: String = "") -> NSMenuItem {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: fallback)
             item.target = self
@@ -385,7 +393,13 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(row("Settings…", #selector(openSettings), "settingsShortcut", fallback: ","))
         menu.addItem(.separator())
         menu.addItem(row("About SmartHiddenBar", #selector(showAbout), ""))
-        menu.addItem(row("Support on Ko-fi ☕", #selector(openKofi), ""))
+        let kofi = row("Support on Ko-fi ☕", #selector(openKofi), "")
+        kofi.keyEquivalentModifierMask = []  // no modifier, so ⌥ swaps in the alternate below
+        menu.addItem(kofi)
+        let preview = row("Show Support Prompt Now", #selector(previewSupportPrompt), "")  // hold ⌥; never recorded
+        preview.keyEquivalentModifierMask = .option
+        preview.isAlternate = true
+        menu.addItem(preview)
         let quit = row("Quit SmartHiddenBar", #selector(NSApplication.terminate(_:)), "quitShortcut", fallback: "q")
         quit.target = NSApp  // `self` doesn't implement terminate:, so with target = self the item auto-disables
         menu.addItem(quit)
@@ -425,6 +439,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Opens the real menu, copies it, closes it, and pops the copy up below `view`. Non-menu items: the press did it.
     func show(_ e: Extra, below view: NSView) {
+        tidyUsed()
         unmonitor()  // our own Escape / menu clicks must not hide the bar the copy is anchored to
         DispatchQueue.main.async { [self] in  // let the status menu finish closing first
             defer { hideBar() }
@@ -450,6 +465,7 @@ final class Lister: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func showBar() {
+        supportPromptMakeWay()
         unmonitor()
         let win = status.button?.window
         guard let screen = mouseScreen() ?? win?.screen ?? NSScreen.main else { return }

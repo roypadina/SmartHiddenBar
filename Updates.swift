@@ -4,7 +4,10 @@ import Sparkle
 /// Sparkle updater: feed URL + public key come from Info.plist.
 @MainActor enum Updates {
     static let controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: presenter, userDriverDelegate: presenter)
-    static func check() { controller.checkForUpdates(nil) }
+    static func check() {
+        lister.supportPromptMakeWay()  // Sparkle's window comes first: a Ko-fi card still open counts as a snooze
+        controller.checkForUpdates(nil)
+    }
     /// Version of an update Sparkle found that is not installed yet; nil when none is known.
     private(set) static var availableVersion: String?
     /// Title for the status-item menu: offers a found update, else a manual check.
@@ -28,6 +31,7 @@ import Sparkle
 
         func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
             MainActor.assumeIsolated {
+                lister.supportPromptMakeWay()
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate()
             }
