@@ -29,7 +29,7 @@ body:
     id: version
     attributes:
       label: SmartHiddenBar version and install method
-      placeholder: "1.7.0, Homebrew, running from /Applications"
+      placeholder: "1.7.1, Homebrew, running from /Applications"
     validations:
       required: true
   - type: textarea
